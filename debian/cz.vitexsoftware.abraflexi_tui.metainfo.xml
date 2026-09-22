@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+  <id>cz.vitexsoftware.abraflexi_tui</id>
+  <icon type="stock">abraflexi-tui</icon>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>abraflexi-tui</name>
+  <summary>Turbo Vision TUI frontend for AbraFlexi CLI</summary>
+  <description>
+    <p>
+      AbraFlexi TUI provides a terminal user interface for the abraflexi-cli
+      tool, built with the Turbo Vision (tvision) library. It shells out to
+      abraflexi-cli for all AbraFlexi connectivity and renders company,
+      evidence, and record data in a classic text-mode UI.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Connection status screen</li>
+      <li>Company list</li>
+      <li>Evidence browser</li>
+      <li>Generic, evidence-parameterized record list and detail view</li>
+      <li>Record creation with mandatory-field hints and dry-run support</li>
+      <li>Saved server profiles (password or session token) and the current request URL</li>
+    </ul>
+  </description>
+  <categories>
+    <category>System</category>
+    <category>ConsoleOnly</category>
+  </categories>
+  <url type="homepage">https://github.com/VitexSoftware/abraflexi-tui</url>
+  <url type="bugtracker">https://github.com/VitexSoftware/abraflexi-tui/issues</url>
+  <developer id="cz.vitexsoftware">
+    <name>VitexSoftware</name>
+  </developer>
+  <releases>
+    <release version="1.0.0" date="2026-09-22">
+      <description>
+        <p>First release of the Turbo Vision frontend for abraflexi-cli.</p>
+      </description>
+    </release>
+  </releases>
+  <provides>
+    <binary>abraflexi-tui</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+</component>

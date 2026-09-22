@@ -1,0 +1,192 @@
+.TH ABRAFLEXI\-TUI 1 "2026-09-22" "abraflexi-tui 1.0.0" "AbraFlexi TUI Manual"
+.SH NAME
+abraflexi\-tui \- Turbo Vision text user interface for abraflexi\-cli
+.SH SYNOPSIS
+.B abraflexi\-tui
+[\fB\-\-cli\fR=\fIPATH\fR]
+[\fB\-\-envfile\fR=\fIFILE\fR]
+.SH DESCRIPTION
+.B abraflexi\-tui
+is a text-mode (Turbo Vision / tvision) front end for
+.BR abraflexi\-cli (1).
+It never talks to the AbraFlexi REST API itself: every screen shells out to
+.B abraflexi\-cli
+with \fB\-\-format=json\fR and renders the result. Evidence-schema logic stays
+in
+.BR abraflexi\-cli .
+Saved server profiles (URL, company, password or session token) live in
+the TUI and are passed to the CLI as environment variables.
+.PP
+The browser is generic and evidence-parameterized: there is one record list
+screen that works for any AbraFlexi evidence (picked from the evidence
+browser), not a separate screen per evidence type.
+.SH OPTIONS
+.TP
+.BI \-\-cli= PATH
+Path to the
+.B abraflexi\-cli
+binary to run. Defaults to the value of \fBABRAFLEXI_TUI_CLI\fR, or
+.B abraflexi\-cli
+resolved from \fBPATH\fR.
+.TP
+.BI \-\-envfile= FILE
+Forwarded as \fB\-\-envfile\fR to
+.B abraflexi\-cli
+when no server profile is active. If omitted, \fBabraflexi\-cli\fR's own
+default \fI.env\fR discovery applies. Once a profile is active, that
+profile's variables are injected instead and \fB\-\-envfile\fR is not
+forwarded.
+.SH FILES
+.TP
+.I ~/.config/abraflexi\-tui/servers.json
+Saved server profiles. Created mode 0600. \fBXDG_CONFIG_HOME\fR overrides
+.I ~/.config
+when set. On the first start, if this file does not exist, a profile named
+.B default
+is imported from \fB\-\-envfile\fR or from inherited \fBABRAFLEXI_*\fR
+variables when those provide \fBABRAFLEXI_URL\fR. When neither source
+defines a server, a profile named
+.B demo
+is created for the public server
+.B https://demo.flexibee.eu:5434
+(login
+.BR winstrom ,
+company
+.BR demo )
+and made active.
+If a profile is already active, the Status dialog is shown at startup.
+If no profile is active, the Servers dialog is shown so a configuration
+can be chosen.
+.SH SCREENS
+.TP
+.B About (F1, Help menu)
+Version and homepages of the libraries and utilities used by
+.BR abraflexi\-tui :
+.BR abraflexi\-cli ,
+php-abraflexi, Turbo Vision (tvision), nlohmann/json and ncurses.
+Enter or Open starts
+.B xdg-open
+on the selected address.
+.TP
+.B Status (Alt-S)
+Shows the configured AbraFlexi connection and whether the server and
+company are reachable (\fBabraflexi\-cli status\fR).
+.TP
+.B Companies (Alt-C)
+Lists companies available on the server (\fBabraflexi\-cli list\-companies\fR).
+Press Enter or double-click a row to choose that company. The status line
+then shows its database name next to the query editor mode (\fBJSON\fR or
+\fBXML\fR).
+.TP
+.B Evidences (Alt-E)
+Lists available evidence catalogues (\fBabraflexi\-cli list\-evidences\fR).
+Press Enter or double-click a row to open its record list. F2 shows
+columns, relations and labels.
+.TP
+.B Record list
+Generic, evidence-parameterized browser
+(\fBabraflexi\-cli record \fIEVIDENCE\fB list\fR) with editable filter,
+columns, limit and order fields, an F5 refresh, and an embedded detail
+panel that follows the highlighted row. Press Enter on a row to fetch the
+full record (\fBabraflexi\-cli record \fIEVIDENCE\fB show \fIID\fR).
+Edit saves with
+.BR "record update" ,
+Delete removes the row after confirmation, and Info (F2) opens the
+evidence structure.
+.TP
+.B New Record
+Opens a JSON payload editor pre-annotated with the evidence's mandatory
+fields (sourced from \fBabraflexi\-cli\fR's own validation output). Offers
+Dry-Run and Submit, and a Force checkbox mapped to \fB\-\-force\fR.
+.TP
+.B Find (Alt-F)
+Searches one evidence (\fBrecord \fIEVIDENCE\fB search\fR). With the
+evidence field empty, filters evidence names from
+.BR list\-evidences .
+.TP
+.B Query (Alt-Q)
+Sends a raw REST request through
+.B abraflexi\-cli query
+(method, path, optional body). A relative path is placed under
+.IR /c/COMPANY/ .
+JSON or XML selects syntax highlighting for the body. The choice is stored
+in
+.I servers.json
+and shown on the status line.
+.TP
+.B Changes (Alt-G)
+Shows Changes API status and can enable or disable it, and register or
+unregister a webhook. There is no HTTP listener; the registered URL must
+already be reachable.
+.TP
+.B Servers (Alt-V)
+Lists profiles stored in
+.IR ~/.config/abraflexi\-tui/servers.json
+(mode 0600). Add, edit, delete and set the active profile. Enter or
+double-click on a profile makes it active and opens the status dialog.
+Password
+profiles inject
+.B ABRAFLEXI_LOGIN
+and
+.BR ABRAFLEXI_PASSWORD ;
+token profiles inject
+.B ABRAFLEXI_AUTHSESSID
+and clear the password variables.
+.B Get Token...
+calls
+.B abraflexi\-cli login
+with the values typed in the form and does not write them until OK.
+The status line shows the AbraFlexi URL implied by the request in progress.
+.PP
+PDF preview, company backup, restore, clone and reset, the custom-button
+designer and a webhook HTTP listener remain in Flexplorer.
+.SH ENVIRONMENT
+.TP
+.B ABRAFLEXI_TUI_CLI
+Path to the \fBabraflexi\-cli\fR binary to run; overridden by \fB\-\-cli\fR.
+.PP
+When a server profile is active, the TUI sets
+.BR ABRAFLEXI_URL ,
+.BR ABRAFLEXI_COMPANY ,
+and either
+.BR ABRAFLEXI_LOGIN / ABRAFLEXI_PASSWORD
+or
+.B ABRAFLEXI_AUTHSESSID
+in the CLI child. Otherwise those variables are read by
+.B abraflexi\-cli
+itself; see
+.BR abraflexi\-cli (1).
+.PP
+Session tokens are not refreshed in the background. If a token expires,
+request a new one with
+.B Get Token...
+on the Servers screen.
+.SH EXIT STATUS
+.TP
+.B 0
+Normal exit (Alt-X / Quit).
+.SH EXAMPLES
+Run against the system-installed CLI and default \fI.env\fR discovery:
+.RS
+.EX
+abraflexi\-tui
+.EE
+.RE
+.PP
+Run against a CLI checkout and an explicit environment file:
+.RS
+.EX
+ABRAFLEXI_TUI_CLI=./abraflexi\-cli/bin/abraflexi\-cli \e
+    abraflexi\-tui \-\-envfile=./abraflexi\-cli/.env
+.EE
+.RE
+.SH SEE ALSO
+.BR abraflexi\-cli (1)
+.PP
+Project homepage:
+.I https://github.com/VitexSoftware/abraflexi\-tui
+.SH AUTHOR
+Vitex Software <info@vitexsoftware.cz>
+.SH COPYRIGHT
+Copyright \(co 2026 Vitex Software.
+Licensed under the MIT License.

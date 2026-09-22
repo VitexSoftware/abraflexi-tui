@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	@if [ -d .git ] && [ ! -f vendor/tvision/CMakeLists.txt ]; then \
+		git submodule update --init --recursive; \
+	fi
+	dh_auto_configure -- -DCMAKE_BUILD_TYPE=Release
+
+override_dh_auto_test:
+	@echo "No automated tests for this TUI (manual verification only, see README.md)"

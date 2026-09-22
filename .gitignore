@@ -1,0 +1,10 @@
+/build/
+/cmake-build-*/
+*.o
+*.obj
+compile_commands.json
+.cache/
+CMakeUserPresets.json
+*.deb
+*.buildinfo
+*.changes

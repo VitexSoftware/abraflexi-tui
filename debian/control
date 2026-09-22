@@ -1,0 +1,28 @@
+Source: abraflexi-tui
+Section: utils
+Priority: optional
+Maintainer: Vitex Software <info@vitexsoftware.cz>
+Build-Depends: debhelper-compat (= 13), cmake, g++, libncurses-dev | libncursesw5-dev, nlohmann-json3-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/VitexSoftware/abraflexi-tui
+Vcs-Git: https://github.com/VitexSoftware/abraflexi-tui.git
+Vcs-Browser: https://github.com/VitexSoftware/abraflexi-tui
+Rules-Requires-Root: no
+
+Package: abraflexi-tui
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, abraflexi-cli
+Description: Turbo Vision TUI frontend for AbraFlexi CLI
+ abraflexi-tui provides a terminal user interface for the abraflexi-cli
+ tool, built with the Turbo Vision (tvision) library.
+ .
+ It shells out to abraflexi-cli for all AbraFlexi connectivity and
+ renders company, evidence and record data in a classic text-mode UI:
+  * Connection status, company list and evidence browser screens
+  * Generic, evidence-parameterized record list and detail view
+  * Record creation with mandatory-field hints and dry-run support
+  * Saved server profiles (password or session token) and the request URL
+    in the status line
+ .
+ This package provides a keyboard-driven way to browse and create
+ AbraFlexi records without leaving the terminal.

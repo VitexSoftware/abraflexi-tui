@@ -1,0 +1,9 @@
+abraflexi-tui (1.0.0) unstable; urgency=medium
+
+  * Initial release: Turbo Vision (tvision) TUI frontend for abraflexi-cli.
+  * Status, company list and evidence browser screens.
+  * Generic, evidence-parameterized record list, detail view and
+    record creation (JSON payload editor with mandatory-field hints,
+    dry-run and force support).
+
+ -- Vitex Software <info@vitexsoftware.cz>  Tue, 22 Sep 2026 04:54:45 +0200
