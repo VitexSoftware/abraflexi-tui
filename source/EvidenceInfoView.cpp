@@ -23,7 +23,7 @@ std::string flag(const nlohmann::json &item, const char *key) {
 EvidenceInfoView::EvidenceInfoView(CliClient &client, std::string evidence)
     : TWindowInit(&TWindow::initFrame),
       TWindow(TRect(2, 1, 78, 23), ("Structure: " + evidence).c_str(), wnNoNumber) {
-    options |= ofCentered;
+    options |= ofCentered | ofTileable;
 
     CliClient::Result result = client.runJson({"record", evidence, "properties"});
     std::vector<std::string> rows;

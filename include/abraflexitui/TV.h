@@ -18,6 +18,7 @@
 #define Uses_TFrame
 #define Uses_TGroup
 #define Uses_TView
+#define Uses_TDrawBuffer
 #define Uses_TScrollBar
 #define Uses_TListViewer
 #define Uses_TStaticText

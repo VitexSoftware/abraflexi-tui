@@ -41,6 +41,7 @@ public:
     void refresh();
     void onRowFocused(const nlohmann::json *record);
     void onRowActivated(const nlohmann::json *record);
+    void changeBounds(const TRect &bounds) override;
 
     CliClient &client() { return client_; }
     const std::string &evidence() const { return evidence_; }
@@ -52,6 +53,8 @@ private:
     void editSelected();
     void deleteSelected();
     void showFields();
+    void openSelectedWindow();
+    void placePanes();
 
     CliClient &client_;
     std::string evidence_;
@@ -61,8 +64,9 @@ private:
     TInputLine *limitInput_;
     TInputLine *orderInput_;
 
-    RecordListBox *grid_;
-    RecordDetailView *detail_;
+    RecordListBox *grid_ = nullptr;
+    TStaticText *separator_ = nullptr;
+    RecordDetailView *detail_ = nullptr;
 };
 
 } // namespace abraflexitui

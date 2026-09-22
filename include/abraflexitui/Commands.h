@@ -12,6 +12,7 @@ constexpr unsigned short cmShowQuery = 1004;
 constexpr unsigned short cmShowSearch = 1005;
 constexpr unsigned short cmShowChanges = 1006;
 constexpr unsigned short cmShowAbout = 1007;
+constexpr unsigned short cmShowWebQr = 1008;
 
 constexpr unsigned short cmOpenRecordList = 1010;   // evidence picked -> open RecordListView
 constexpr unsigned short cmRecordFocused = 1011;    // record row highlight moved
@@ -31,5 +32,13 @@ constexpr unsigned short cmServerSetActive = 1023;
 constexpr unsigned short cmServerGetToken = 1024;
 
 constexpr unsigned short cmFormatCode = 1039;
+constexpr unsigned short cmOpenRecordWindow = 1040;
+constexpr unsigned short cmPreviewFilter = 1041;
+constexpr unsigned short cmPreviewSort = 1042;
+constexpr unsigned short cmPreviewRefresh = 1043;
+
+// Standard Turbo Vision command ids (0-255) so the Window menu can disable them.
+constexpr unsigned short cmMinimizeAll = 200;
+constexpr unsigned short cmRestoreWindows = 201;
 
 } // namespace abraflexitui

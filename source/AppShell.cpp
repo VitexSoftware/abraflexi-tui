@@ -11,6 +11,12 @@
 #include "abraflexitui/SearchView.h"
 #include "abraflexitui/ChangesView.h"
 #include "abraflexitui/AboutView.h"
+#include "abraflexitui/QrCodeView.h"
+#include "abraflexitui/DisplayUrl.h"
+
+#include <algorithm>
+#include <stdexcept>
+#include <vector>
 
 namespace abraflexitui {
 
@@ -114,6 +120,21 @@ void AbraFlexiApp::openStatus() {
     statusDialogOpen_ = false;
 }
 
+void AbraFlexiApp::openWebQr() {
+    const std::string web = webInterfaceUrl(statusLine_ == nullptr ? std::string() : statusLine_->currentUrl());
+
+    if (web.empty()) {
+        messageBox("The status line has no web address to show.", mfError | mfOKButton);
+        return;
+    }
+
+    try {
+        executeDialog(new QrCodeDialog(web));
+    } catch (const std::exception &error) {
+        messageBox(error.what(), mfError | mfOKButton);
+    }
+}
+
 void AbraFlexiApp::idle() {
     TApplication::idle();
 
@@ -124,6 +145,8 @@ void AbraFlexiApp::idle() {
     if (pendingStatusDialog_) {
         openStatus();
     }
+
+    updateWindowCommands();
 }
 
 TMenuBar *AbraFlexiApp::initMenuBar(TRect r) {
@@ -136,8 +159,20 @@ TMenuBar *AbraFlexiApp::initMenuBar(TRect r) {
                *new TMenuItem("Ser~v~ers...", cmShowServerConfig, kbAltV) +
                *new TMenuItem("~Q~uery...", cmShowQuery, kbAltQ) +
                *new TMenuItem("~F~ind...", cmShowSearch, kbAltF) +
-               *new TMenuItem("Chan~g~es...", cmShowChanges, kbAltG) + newLine() +
+               *new TMenuItem("Chan~g~es...", cmShowChanges, kbAltG) +
+               *new TMenuItem("~B~rowser QR...", cmShowWebQr, kbAltB, hcNoContext, "Alt-B") + newLine() +
                *new TMenuItem("E~x~it", cmQuit, cmQuit, hcNoContext, "Alt-X") +
+           *new TSubMenu("~W~indow", kbAltW) +
+               *new TMenuItem("~S~ize/move", cmResize, kbCtrlF5, hcNoContext, "Ctrl-F5") +
+               *new TMenuItem("~Z~oom", cmZoom, kbNoKey) +
+               *new TMenuItem("~T~ile", cmTile, kbNoKey) +
+               *new TMenuItem("C~a~scade", cmCascade, kbNoKey) +
+               *new TMenuItem("~N~ext", cmNext, kbF6, hcNoContext, "F6") +
+               *new TMenuItem("~P~revious", cmPrev, kbShiftF6, hcNoContext, "Shift-F6") +
+               *new TMenuItem("~M~inimize all", cmMinimizeAll, kbNoKey) +
+               *new TMenuItem("~R~estore", cmRestoreWindows, kbNoKey) + newLine() +
+               *new TMenuItem("~C~lose", cmClose, kbAltF3, hcNoContext, "Alt-F3") +
+               *new TMenuItem("Close a~l~l", cmCloseAll, kbNoKey) +
            *new TSubMenu("~H~elp", kbAltH) + *new TMenuItem("~A~bout...", cmShowAbout, kbF1, hcNoContext, "F1"));
 }
 
@@ -207,6 +242,30 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
         break;
     }
 
+    case cmShowWebQr: {
+        openWebQr();
+        clearEvent(event);
+        break;
+    }
+
+    case cmMinimizeAll: {
+        minimizeAll();
+        clearEvent(event);
+        break;
+    }
+
+    case cmRestoreWindows: {
+        restoreWindows();
+        clearEvent(event);
+        break;
+    }
+
+    case cmCloseAll: {
+        closeAllWindows();
+        clearEvent(event);
+        break;
+    }
+
     case cmOpenRecordList: {
         auto *evidence = static_cast<nlohmann::json *>(event.message.infoPtr);
 
@@ -226,6 +285,134 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
     default:
         break;
     }
+}
+
+namespace {
+
+bool isArrangeable(TView *view) {
+    return (view->options & ofTileable) != 0 && (view->state & sfVisible) != 0 && (view->state & sfModal) == 0;
+}
+
+void collectArrangeable(TView *view, void *arg) {
+    if (isArrangeable(view)) {
+        static_cast<std::vector<TWindow *> *>(arg)->push_back(static_cast<TWindow *>(view));
+    }
+}
+
+void collectLive(TView *view, void *arg) {
+    static_cast<std::vector<TView *> *>(arg)->push_back(view);
+}
+
+} // namespace
+
+void AbraFlexiApp::updateWindowCommands() {
+    if (deskTop == nullptr) {
+        return;
+    }
+
+    std::vector<TView *> live;
+    deskTop->forEach(collectLive, &live);
+    minimized_.erase(std::remove_if(minimized_.begin(), minimized_.end(),
+                                     [&live](const MinimizedWindow &saved) {
+                                         return std::find(live.begin(), live.end(), saved.window) == live.end();
+                                     }),
+                     minimized_.end());
+
+    std::vector<TWindow *> open;
+    deskTop->forEach(collectArrangeable, &open);
+    const Boolean hasWindows = open.empty() ? False : True;
+    const Boolean hasMinimized = minimized_.empty() ? False : True;
+
+    if (hasWindows) {
+        enableCommand(cmTile);
+        enableCommand(cmCascade);
+        enableCommand(cmCloseAll);
+        enableCommand(cmMinimizeAll);
+    } else {
+        disableCommand(cmTile);
+        disableCommand(cmCascade);
+        disableCommand(cmCloseAll);
+        disableCommand(cmMinimizeAll);
+    }
+
+    if (hasMinimized) {
+        enableCommand(cmRestoreWindows);
+    } else {
+        disableCommand(cmRestoreWindows);
+    }
+}
+
+void AbraFlexiApp::minimizeAll() {
+    std::vector<TWindow *> open;
+    deskTop->forEach(collectArrangeable, &open);
+
+    TRect desk = deskTop->getExtent();
+    short x = 0;
+    short y = static_cast<short>(desk.b.y - 2);
+    const short width = 22;
+
+    deskTop->lock();
+
+    for (TWindow *window : open) {
+        if (x + width > desk.b.x) {
+            x = 0;
+            y = static_cast<short>(y - 2);
+        }
+
+        if (y < desk.a.y) {
+            break;
+        }
+
+        MinimizedWindow saved;
+        saved.window = window;
+        saved.bounds = window->getBounds();
+        window->options &= ~ofTileable;
+        TRect bar(x, y, static_cast<short>(x + width), static_cast<short>(y + 2));
+        window->locate(bar);
+        minimized_.push_back(saved);
+        x = static_cast<short>(x + width);
+    }
+
+    deskTop->unlock();
+}
+
+void AbraFlexiApp::restoreWindows() {
+    std::vector<TView *> live;
+    deskTop->forEach(collectLive, &live);
+    deskTop->lock();
+
+    for (const MinimizedWindow &saved : minimized_) {
+        if (std::find(live.begin(), live.end(), saved.window) == live.end()) {
+            continue;
+        }
+
+        saved.window->options |= ofTileable;
+        TRect bounds = saved.bounds;
+        saved.window->locate(bounds);
+    }
+
+    minimized_.clear();
+    deskTop->unlock();
+}
+
+void AbraFlexiApp::closeAllWindows() {
+    std::vector<TWindow *> open;
+    deskTop->forEach(collectArrangeable, &open);
+    std::vector<TWindow *> minimized;
+
+    for (const MinimizedWindow &saved : minimized_) {
+        minimized.push_back(saved.window);
+    }
+
+    for (TWindow *window : open) {
+        message(window, evCommand, cmClose, window);
+    }
+
+    for (TWindow *window : minimized) {
+        message(window, evCommand, cmClose, window);
+    }
+
+    minimized_.clear();
 }
 
 } // namespace abraflexitui

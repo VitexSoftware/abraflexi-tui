@@ -16,14 +16,19 @@ public:
     AppStatusLine(const TRect &bounds, TStatusDef &aDefs) noexcept;
 
     void draw() override;
+    void handleEvent(TEvent &event) override;
     void setCurrentUrl(const std::string &url);
     void setCompany(const std::string &company);
     void setQueryMode(const std::string &mode);
+
+    const std::string &currentUrl() const { return currentUrl_; }
 
 private:
     std::string currentUrl_;
     std::string company_;
     std::string queryMode_;
+    int urlStart_ = -1;
+    int urlEnd_ = -1;
 };
 
 } // namespace abraflexitui

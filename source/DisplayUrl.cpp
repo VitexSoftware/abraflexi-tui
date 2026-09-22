@@ -219,4 +219,49 @@ std::string buildDisplayUrl(const std::string &baseUrl, const std::string &compa
     return base + " " + joinArgs(cliArgs);
 }
 
+std::string webInterfaceUrl(const std::string &displayUrl) {
+    std::size_t start = displayUrl.find_first_not_of(" \t");
+
+    if (start == std::string::npos) {
+        return std::string();
+    }
+
+    std::string url = displayUrl.substr(start);
+    const char *verbs[] = {"GET ", "POST ", "PUT ", "DELETE ", "PATCH "};
+
+    for (const char *verb : verbs) {
+        const std::size_t length = std::char_traits<char>::length(verb);
+
+        if (url.compare(0, length, verb) == 0) {
+            url.erase(0, length);
+            break;
+        }
+    }
+
+    if (url.compare(0, 7, "http://") != 0 && url.compare(0, 8, "https://") != 0) {
+        return std::string();
+    }
+
+    const std::size_t query = url.find_first_of("?#");
+
+    if (query != std::string::npos) {
+        url.resize(query);
+    }
+
+    if (url.size() >= 5 && url.compare(url.size() - 5, 5, ".json") == 0) {
+        url.resize(url.size() - 5);
+    } else if (url.size() >= 4 && url.compare(url.size() - 4, 4, ".xml") == 0) {
+        url.resize(url.size() - 4);
+    }
+
+    const std::string properties = "/properties";
+
+    if (url.size() >= properties.size() &&
+        url.compare(url.size() - properties.size(), properties.size(), properties) == 0) {
+        url.resize(url.size() - properties.size());
+    }
+
+    return url;
+}
+
 } // namespace abraflexitui

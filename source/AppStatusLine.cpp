@@ -1,5 +1,6 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/AppStatusLine.h"
+#include "abraflexitui/Commands.h"
 
 namespace abraflexitui {
 
@@ -38,6 +39,8 @@ void AppStatusLine::draw() {
     const TAttrPair cNormal = getColor(0x0301);
     const TAttrPair cNormDisabled = getColor(0x0202);
     b.moveChar(0, ' ', cNormal, static_cast<ushort>(size.x));
+    urlStart_ = -1;
+    urlEnd_ = -1;
 
     int used = 0;
 
@@ -101,10 +104,28 @@ void AppStatusLine::draw() {
             start = used + 1;
         }
 
-        b.moveStr(static_cast<ushort>(start), shown, cNormal);
+        TColorAttr link(cNormal);
+        link.setStyle(static_cast<ushort>(link.getStyle() | slUnderline));
+        b.moveStr(static_cast<ushort>(start), shown, link);
+        urlStart_ = start;
+        urlEnd_ = start + static_cast<int>(shown.size());
     }
 
     writeLine(0, 0, static_cast<ushort>(size.x), 1, b);
+}
+
+void AppStatusLine::handleEvent(TEvent &event) {
+    if (event.what == evMouseDown && urlStart_ >= 0) {
+        const TPoint mouse = makeLocal(event.mouse.where);
+
+        if (mouse.y == 0 && mouse.x >= urlStart_ && mouse.x < urlEnd_) {
+            message(owner, evCommand, cmShowWebQr, nullptr);
+            clearEvent(event);
+            return;
+        }
+    }
+
+    TStatusLine::handleEvent(event);
 }
 
 } // namespace abraflexitui

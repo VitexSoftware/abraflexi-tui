@@ -11,4 +11,9 @@ namespace abraflexitui {
 std::string buildDisplayUrl(const std::string &baseUrl, const std::string &company,
                             const std::vector<std::string> &cliArgs);
 
+// Browser address for the web interface. Strips an HTTP verb, a query string
+// and a trailing .json/.xml (and /properties) from a status-line URL.
+// Returns an empty string when the text is not an http(s) address.
+std::string webInterfaceUrl(const std::string &displayUrl);
+
 } // namespace abraflexitui

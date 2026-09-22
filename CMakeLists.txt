@@ -46,9 +46,12 @@ add_executable(abraflexi-tui
     source/SearchView.cpp
     source/ChangesView.cpp
     source/AboutView.cpp
+    source/QrCodeView.cpp
+    source/DocumentPreview.cpp
+    vendor/qrcodegen/qrcodegen.cpp
 )
 
-target_include_directories(abraflexi-tui PRIVATE include)
+target_include_directories(abraflexi-tui PRIVATE include vendor/qrcodegen)
 target_link_libraries(abraflexi-tui PRIVATE
     tvision::tvision
     nlohmann_json::nlohmann_json

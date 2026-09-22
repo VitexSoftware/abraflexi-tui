@@ -18,7 +18,7 @@ A terminal user interface for [abraflexi-cli](https://github.com/VitexSoftware/a
 - **Query**: raw REST call (method, path, optional body) through `abraflexi-cli query`
 - **Changes API**: status, enable/disable, and webhook register/unregister
 - **Server profiles**: several AbraFlexi servers saved in `~/.config/abraflexi-tui/servers.json` (mode 0600), switched from the Servers screen, with either a password or a session token
-- **Request URL**: the status line shows the AbraFlexi URL implied by the current `abraflexi-cli` call
+- **Request URL**: the status line shows the AbraFlexi URL implied by the current `abraflexi-cli` call. Click that address, or use `Alt+B` / AbraFlexi → Browser QR, to show a QR code of the same address opened in the web interface (without `.json` or a query string)
 
 PDF preview, company backup/restore/clone, the custom-button designer and a webhook HTTP listener stay in Flexplorer. They need a browser or an HTTP endpoint.
 
@@ -36,16 +36,35 @@ PDF preview, company backup/restore/clone, the custom-button designer and a webh
 | `Alt+Q` | Query |
 | `Alt+F` | Find |
 | `Alt+G` | Changes API |
+| `Alt+B` | QR code of the web address currently shown on the status line |
 | `Alt+H` | Help menu |
+| `Alt+W` | Window menu |
 | `F1` | About, with links to the libraries and utilities |
 | `Alt+X` | Quit |
+| `F6` / `Shift+F6` | Next / previous window |
+| `Ctrl+F5` | Move or resize the active window |
+| `Alt+F3` | Close the active window |
 | `F10` | Menu |
+
+### Window menu
+
+Lists, record windows and the evidence browser take part in tiling. Dialogs do not.
+
+| Command | Action |
+|---------|--------|
+| Tile | Split the open windows across the desktop |
+| Cascade | Stack them with a stepped offset |
+| Minimize all | Shrink every open window to a title bar along the bottom |
+| Restore | Put minimized windows back |
+| Close all | Close tiled windows and minimized title bars |
+| Zoom | The frame's zoom control fills the desktop |
 
 ### Evidence Browser
 
 | Key | Action |
 |-----|--------|
 | `↑/↓`, mouse wheel | Move selection |
+| Type | Narrow the list by path, name or description. Backspace deletes the last character |
 | `Enter`, double-click | Open the record list for the selected evidence |
 | `F2` | Columns, relations and labels of the selected evidence |
 
@@ -54,11 +73,22 @@ PDF preview, company backup/restore/clone, the custom-button designer and a webh
 | Key | Action |
 |-----|--------|
 | `↑/↓` | Move selection (updates the detail panel from already-fetched row data) |
-| `Enter`, double-click | Fetch and show the full record (`record <evidence> show <id>`) |
+| `Enter`, double-click | Fetch and show the full record in the lower pane (`record <evidence> show <id>`) |
+| `F4`, Preview | Open a read-only window. A document shows its header and line items, with Filter and Sort; anything else shows the field list. A second Preview of the same id brings that window forward |
 | `F5` | Re-run the list query with the current filter/columns/limit/order |
 | `F2` | Evidence structure (columns, relations, labels) |
 | Filter / Columns / Limit / Order fields | Map 1:1 to `record <evidence> list -f -c -l -o` |
-| Refresh / New / Edit / Delete / Info | Reload, create, edit the selected row, delete it after confirmation, or open the structure window |
+| Refresh / New / Edit / Delete / Info / Preview | Reload, create, edit the selected row, delete it after confirmation, open the structure window, or open a read-only preview |
+
+### Document preview
+
+`F4` on an invoice opens its line items. On an address-book row it opens that company's contacts (`jmeno`, `prijmeni`, `email`, `tel`). Filter and Sort apply to that listing. A company with no contacts shows `no Contacts`.
+
+| Control | Action |
+|---------|--------|
+| Filter | Dialog for an item filter, for example `nazev BEGINS 'A'` |
+| Sort | Dialog for item order, for example `nazev@A` or `sumCelkem@D` |
+| Refresh, `F5` | Reload the line items of this document |
 
 ### New Record
 

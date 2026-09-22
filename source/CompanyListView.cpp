@@ -36,7 +36,7 @@ CompanyListView::CompanyListView(CliClient &client, std::function<void(const std
     : TWindowInit(&TWindow::initFrame),
       TWindow(TRect(2, 1, 78, 20), "Companies", wnNoNumber),
       onChosen_(std::move(onChosen)) {
-    options |= ofCentered;
+    options |= ofCentered | ofTileable;
 
     TRect inner = getExtent();
     inner.grow(-1, -1);

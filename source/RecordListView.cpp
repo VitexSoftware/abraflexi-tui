@@ -3,8 +3,10 @@
 #include "abraflexitui/RecordCreateForm.h"
 #include "abraflexitui/RecordEditForm.h"
 #include "abraflexitui/EvidenceInfoView.h"
+#include "abraflexitui/DocumentPreview.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowLayout.h"
 
 #include <cstring>
 #include <sstream>
@@ -111,7 +113,7 @@ RecordListView::RecordListView(CliClient &client, std::string evidence, std::str
     : TWindowInit(&TWindow::initFrame),
       TWindow(TProgram::deskTop->getExtent(), ("Records: " + evidence).c_str(), wnNoNumber),
       client_(client), evidence_(std::move(evidence)) {
-    options |= ofCentered;
+    options |= ofTileable;
     growMode = gfGrowHiX | gfGrowHiY;
 
     TRect inner = getExtent();
@@ -123,7 +125,7 @@ RecordListView::RecordListView(CliClient &client, std::string evidence, std::str
 
     insert(new TStaticText(
         TRect(x, y, right, y + 1),
-        "F5=Refresh  Enter=Show  F2=Fields  Esc=Close"));
+        "F5=Refresh  Enter=Show  F4=Preview  F2=Fields  Esc=Close"));
     y += 1;
 
     insert(new TStaticText(TRect(x, y, x + 7, y + 1), "Filter:"));
@@ -149,6 +151,7 @@ RecordListView::RecordListView(CliClient &client, std::string evidence, std::str
     insert(new TButton(TRect(x + 23, y, x + 32, y + 2), "Ed~i~t", cmRecordEdit, bfNormal));
     insert(new TButton(TRect(x + 33, y, x + 44, y + 2), "~D~elete", cmRecordDelete, bfNormal));
     insert(new TButton(TRect(x + 45, y, x + 56, y + 2), "~I~nfo", cmShowEvidenceInfo, bfNormal));
+    insert(new TButton(TRect(x + 57, y, x + 70, y + 2), "~P~review", cmOpenRecordWindow, bfNormal));
     y += 2;
 
     short bottom = inner.b.y;
@@ -159,14 +162,71 @@ RecordListView::RecordListView(CliClient &client, std::string evidence, std::str
     grid_ = new RecordListBox(TRect(x, y, right, gridBottom), gridScroll, *this);
     insert(grid_);
 
-    insert(new TStaticText(TRect(x, gridBottom, right, gridBottom + 1), std::string(right - x, '\xC4').c_str()));
+    separator_ = new TStaticText(TRect(x, gridBottom, right, gridBottom + 1), std::string(right - x, '\xC4').c_str());
+    insert(separator_);
 
     TScrollBar *detailScroll = standardScrollBar(sbVertical | sbHandleKeyboard);
     detail_ = new RecordDetailView(TRect(x, gridBottom + 1, right, bottom), detailScroll);
     insert(detail_);
     detail_->showMessage("(select a record above)");
-
+    placePanes();
     refresh();
+}
+
+void RecordListView::changeBounds(const TRect &bounds) {
+    TWindow::changeBounds(bounds);
+
+    if (size.y >= 8) {
+        placePanes();
+    }
+}
+
+void RecordListView::placePanes() {
+    if (grid_ == nullptr || detail_ == nullptr) {
+        return;
+    }
+
+    TRect inner = getExtent();
+    inner.grow(-1, -1);
+    const short y = static_cast<short>(inner.a.y + 5);
+    const short bottom = inner.b.y;
+
+    if (bottom - y < 6) {
+        return;
+    }
+
+    short gridHeight = static_cast<short>((bottom - y) * 3 / 5);
+
+    if (gridHeight < 3) {
+        gridHeight = 3;
+    }
+
+    short gridBottom = static_cast<short>(y + gridHeight);
+
+    if (gridBottom > bottom - 3) {
+        gridBottom = static_cast<short>(bottom - 3);
+    }
+
+    TRect gridRect(inner.a.x, y, static_cast<short>(inner.b.x - 1), gridBottom);
+    grid_->locate(gridRect);
+
+    if (grid_->vScrollBar != nullptr) {
+        TRect bar(static_cast<short>(inner.b.x - 1), y, inner.b.x, gridBottom);
+        grid_->vScrollBar->locate(bar);
+    }
+
+    if (separator_ != nullptr) {
+        TRect line(inner.a.x, gridBottom, inner.b.x, static_cast<short>(gridBottom + 1));
+        separator_->locate(line);
+    }
+
+    TRect detailRect(inner.a.x, static_cast<short>(gridBottom + 1), static_cast<short>(inner.b.x - 1), bottom);
+    detail_->locate(detailRect);
+
+    if (detail_->vScrollBar != nullptr) {
+        TRect bar(static_cast<short>(inner.b.x - 1), static_cast<short>(gridBottom + 1), inner.b.x, bottom);
+        detail_->vScrollBar->locate(bar);
+    }
 }
 
 std::vector<std::string> RecordListView::currentColumns() const {
@@ -236,6 +296,61 @@ void RecordListView::onRowActivated(const nlohmann::json *record) {
     }
 
     detail_->showRecord(result.data);
+}
+
+void RecordListView::openSelectedWindow() {
+    const nlohmann::json *record = grid_->selectedRecord();
+
+    if (record == nullptr) {
+        messageBox("Select a record first.", mfError | mfOKButton);
+        return;
+    }
+
+    const std::string id = jsonField(*record, "id");
+
+    if (id.empty()) {
+        messageBox("The selected row has no id.", mfError | mfOKButton);
+        return;
+    }
+
+    struct Find {
+        std::string evidence;
+        std::string id;
+        TWindow *found = nullptr;
+    } find{evidence_, id, nullptr};
+
+    TProgram::deskTop->forEach(
+        [](TView *view, void *arg) {
+            auto *seek = static_cast<Find *>(arg);
+            auto *preview = dynamic_cast<DocumentPreview *>(view);
+            auto *window = dynamic_cast<RecordWindow *>(view);
+
+            if (preview != nullptr && preview->evidence() == seek->evidence && preview->recordId() == seek->id) {
+                seek->found = preview;
+            } else if (window != nullptr && window->evidence() == seek->evidence && window->recordId() == seek->id) {
+                seek->found = window;
+            }
+        },
+        &find);
+
+    if (find.found != nullptr) {
+        find.found->select();
+        return;
+    }
+
+    CliClient::Result result = client_.runJson({"record", evidence_, "show", id});
+
+    if (!result.ok) {
+        messageBox(result.errorMessage.empty() ? std::string("Could not open the record") : result.errorMessage,
+                   mfError | mfOKButton);
+        return;
+    }
+
+    if (evidenceHasItems(evidence_)) {
+        TProgram::deskTop->insert(new DocumentPreview(client_, evidence_, id, result.data));
+    } else {
+        TProgram::deskTop->insert(new RecordWindow(evidence_, id, result.data));
+    }
 }
 
 void RecordListView::editSelected() {
@@ -330,6 +445,11 @@ void RecordListView::handleEvent(TEvent &event) {
             clearEvent(event);
             break;
 
+        case cmOpenRecordWindow:
+            openSelectedWindow();
+            clearEvent(event);
+            break;
+
         default:
             break;
         }
@@ -339,6 +459,9 @@ void RecordListView::handleEvent(TEvent &event) {
             clearEvent(event);
         } else if (event.keyDown.keyCode == kbF2) {
             showFields();
+            clearEvent(event);
+        } else if (event.keyDown.keyCode == kbF4) {
+            openSelectedWindow();
             clearEvent(event);
         }
     }

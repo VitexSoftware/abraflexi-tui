@@ -33,6 +33,7 @@ int main() {
     using abraflexitui::AuthMethod;
     using abraflexitui::ServerProfile;
     using abraflexitui::buildDisplayUrl;
+    using abraflexitui::webInterfaceUrl;
 
     CHECK(buildDisplayUrl("https://demo.flexibee.eu:5434/", "demo", {"status"}) ==
           "https://demo.flexibee.eu:5434/c/demo");
@@ -67,6 +68,16 @@ int main() {
           "POST https://demo.flexibee.eu/c/demo/changes");
     CHECK(buildDisplayUrl("https://demo.flexibee.eu", "", {"login"}) == "POST https://demo.flexibee.eu/login-logout/login");
     CHECK(buildDisplayUrl("", "", {"status"}) == "status");
+    CHECK(webInterfaceUrl("https://demo.flexibee.eu:5434/c/demo") == "https://demo.flexibee.eu:5434/c/demo");
+    CHECK(webInterfaceUrl("https://demo.flexibee.eu/c/demo/faktura-vydana/2.json") ==
+          "https://demo.flexibee.eu/c/demo/faktura-vydana/2");
+    CHECK(webInterfaceUrl("GET https://demo.flexibee.eu/c/demo/adresar.json?limit=5") ==
+          "https://demo.flexibee.eu/c/demo/adresar");
+    CHECK(webInterfaceUrl("POST https://demo.flexibee.eu/c/demo/adresar.json") ==
+          "https://demo.flexibee.eu/c/demo/adresar");
+    CHECK(webInterfaceUrl("https://demo.flexibee.eu/c/demo/adresar/properties.json") ==
+          "https://demo.flexibee.eu/c/demo/adresar");
+    CHECK(webInterfaceUrl("status").empty());
 
     ServerProfile official = ServerProfile::officialDemo();
     CHECK(official.name == "demo");
