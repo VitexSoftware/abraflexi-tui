@@ -22,7 +22,7 @@ A terminal user interface for [abraflexi-cli](https://github.com/VitexSoftware/a
 
 PDF preview, company backup/restore/clone, the custom-button designer and a webhook HTTP listener stay in Flexplorer. They need a browser or an HTTP endpoint.
 
-![Screenshot](Screenshot.png?raw=true)
+![Screenshot](screenshot.png?raw=true)
 
 ## Keyboard Reference
 
