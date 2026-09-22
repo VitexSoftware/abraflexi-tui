@@ -29,6 +29,7 @@ void AbraFlexiApp::configure(std::string cliBinary, std::string envFile, Profile
     client_.setBinaryPath(std::move(cliBinary));
     client_.setEnvFile(std::move(envFile));
     store_ = std::move(store);
+    session_.load();
     client_.setRequestObserver([this](const std::string &url) {
         if (statusLine_ != nullptr) {
             statusLine_->setCurrentUrl(url);
@@ -38,6 +39,7 @@ void AbraFlexiApp::configure(std::string cliBinary, std::string envFile, Profile
 
     if (store_.active() != nullptr) {
         pendingStatusDialog_ = true;
+        pendingSessionRestore_ = true;
     }
 }
 
@@ -142,11 +144,52 @@ void AbraFlexiApp::idle() {
         openServerConfig();
     }
 
+    // openStatus() below is a modal executeDialog() call: it runs its own
+    // nested event loop, which calls this same idle() method again while
+    // still "inside" the outer call. Only check pendingSessionRestore_
+    // AFTER openStatus() has actually returned (dialog dismissed), or a
+    // restored window could get inserted underneath/alongside the still-open
+    // modal status check instead of after it, as happened when both flags
+    // were checked unconditionally in the same idle() tick.
     if (pendingStatusDialog_) {
         openStatus();
     }
 
+    if (!statusDialogOpen_ && !serverDialogOpen_ && pendingSessionRestore_) {
+        pendingSessionRestore_ = false;
+        restoreSessionWindows();
+    }
+
     updateWindowCommands();
+}
+
+void AbraFlexiApp::restoreSessionWindows() {
+    // Re-open whatever record-list windows were open last time, each back
+    // on its previously selected record and at its previous position, so
+    // restarting the app returns to the same documents instead of an empty
+    // desktop.
+    //
+    // Snapshot first: each RecordListView constructed below re-registers
+    // itself via session_.openWindow(), which appends to the very vector
+    // session_.windows() returns a reference to - iterating that live
+    // vector while it can reallocate under us would be undefined behavior.
+    // The stale entries this snapshot is replacing are removed as each new
+    // window's own destructor eventually calls session_.closeWindow(), same
+    // as any other RecordListView.
+    const std::vector<WindowSession> saved = session_.windows();
+
+    // Drop the loaded entries before re-opening: each new RecordListView
+    // below registers its own fresh entry, and leaving the old ones in
+    // place too would double the remembered window count on every restart.
+    for (const WindowSession &win : saved) {
+        session_.closeWindow(win.id);
+    }
+
+    for (const WindowSession &win : saved) {
+        const WindowBounds *bounds = win.hasBounds ? &win.bounds : nullptr;
+        TProgram::deskTop->insert(
+            new RecordListView(client_, session_, win.evidence, "id,kod,nazev", 20, win.focusedId, bounds));
+    }
 }
 
 TMenuBar *AbraFlexiApp::initMenuBar(TRect r) {
@@ -206,7 +249,7 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
     }
 
     case cmShowEvidences: {
-        EvidenceListView *win = new EvidenceListView(client_);
+        EvidenceListView *win = new EvidenceListView(client_, session_);
         deskTop->insert(win);
         clearEvent(event);
         break;
@@ -225,7 +268,7 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
     }
 
     case cmShowSearch: {
-        executeDialog(new SearchView(client_));
+        executeDialog(new SearchView(client_, session_));
         clearEvent(event);
         break;
     }
@@ -273,7 +316,7 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
             std::string path = jsonField(*evidence, "path");
 
             if (!path.empty()) {
-                RecordListView *win = new RecordListView(client_, path);
+                RecordListView *win = new RecordListView(client_, session_, path);
                 deskTop->insert(win);
             }
         }

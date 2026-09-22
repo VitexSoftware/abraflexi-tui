@@ -32,6 +32,9 @@ constexpr unsigned short cmServerSetActive = 1023;
 constexpr unsigned short cmServerGetToken = 1024;
 
 constexpr unsigned short cmFormatCode = 1039;
+constexpr unsigned short cmFieldFormPrevPage = 1044;
+constexpr unsigned short cmFieldFormNextPage = 1045;
+constexpr unsigned short cmFieldFormToggleRaw = 1046;
 constexpr unsigned short cmOpenRecordWindow = 1040;
 constexpr unsigned short cmPreviewFilter = 1041;
 constexpr unsigned short cmPreviewSort = 1042;

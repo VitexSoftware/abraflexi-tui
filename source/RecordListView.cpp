@@ -1,4 +1,5 @@
 #include "abraflexitui/TV.h"
+#include "abraflexitui/AppButton.h"
 #include "abraflexitui/RecordListView.h"
 #include "abraflexitui/RecordCreateForm.h"
 #include "abraflexitui/RecordEditForm.h"
@@ -42,20 +43,40 @@ void setInputText(TInputLine *input, const std::string &text) {
     input->data[input->maxLen] = '\0';
 }
 
+TRect initialWindowRect(const WindowBounds *bounds) {
+    if (bounds != nullptr) {
+        return TRect(static_cast<short>(bounds->x1), static_cast<short>(bounds->y1),
+                     static_cast<short>(bounds->x2), static_cast<short>(bounds->y2));
+    }
+
+    return TProgram::deskTop->getExtent();
+}
+
+WindowBounds toWindowBounds(const TRect &rect) {
+    WindowBounds bounds;
+    bounds.x1 = rect.a.x;
+    bounds.y1 = rect.a.y;
+    bounds.x2 = rect.b.x;
+    bounds.y2 = rect.b.y;
+    return bounds;
+}
+
 } // namespace
 
 RecordListBox::RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, RecordListView &ownerView) noexcept
     : SimpleListViewer(bounds, vScrollBar), ownerView_(ownerView) {
 }
 
-void RecordListBox::setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns) {
+void RecordListBox::setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns,
+                                const std::map<std::string, std::string> &titles) {
     records_ = std::move(records);
 
     std::vector<std::string> rows;
     std::string header;
 
     for (std::size_t i = 0; i < columns.size(); ++i) {
-        header += fitColumn(columns[i], 18);
+        auto title = titles.find(columns[i]);
+        header += fitColumn(title != titles.end() && !title->second.empty() ? title->second : columns[i], 18);
 
         if (i + 1 < columns.size()) {
             header += " ";
@@ -93,6 +114,20 @@ const nlohmann::json *RecordListBox::selectedRecord() const {
     return nullptr;
 }
 
+short RecordListBox::rowForId(const std::string &id) const {
+    if (id.empty()) {
+        return -1;
+    }
+
+    for (std::size_t i = 0; i < records_.size(); ++i) {
+        if (jsonField(records_[i], "id") == id) {
+            return static_cast<short>(i + 1);
+        }
+    }
+
+    return -1;
+}
+
 void RecordListBox::focusItem(short item) {
     SimpleListViewer::focusItem(item);
     ownerView_.onRowFocused(selectedRecord());
@@ -109,12 +144,40 @@ void RecordListBox::handleEvent(TEvent &event) {
     SimpleListViewer::handleEvent(event);
 }
 
-RecordListView::RecordListView(CliClient &client, std::string evidence, std::string columns, int limit)
+RecordListView::RecordListView(CliClient &client, SessionStore &session, std::string evidence,
+                                std::string columns, int limit, std::string initialFocusId,
+                                const WindowBounds *initialBounds)
     : TWindowInit(&TWindow::initFrame),
-      TWindow(TProgram::deskTop->getExtent(), ("Records: " + evidence).c_str(), wnNoNumber),
-      client_(client), evidence_(std::move(evidence)) {
+      TWindow(initialWindowRect(initialBounds), ("Records: " + evidence).c_str(), wnNoNumber),
+      client_(client), session_(session), evidence_(std::move(evidence)),
+      pendingFocusId_(std::move(initialFocusId)) {
+    sessionHandle_ = session_.openWindow(evidence_, pendingFocusId_, initialBounds);
     options |= ofTileable;
     growMode = gfGrowHiX | gfGrowHiY;
+
+    schema_ = EvidenceSchema::fetch(client_, evidence_);
+
+    for (const auto &field : schema_) {
+        if (!field.title.empty()) {
+            fieldTitles_[field.name] = field.title;
+        }
+    }
+
+    std::vector<std::string> summaryColumns = EvidenceSchema::summaryNames(schema_);
+
+    if (!summaryColumns.empty()) {
+        std::string joined;
+
+        for (std::size_t i = 0; i < summaryColumns.size(); ++i) {
+            joined += summaryColumns[i];
+
+            if (i + 1 < summaryColumns.size()) {
+                joined += ",";
+            }
+        }
+
+        columns = joined;
+    }
 
     TRect inner = getExtent();
     inner.grow(-1, -1);
@@ -146,12 +209,12 @@ RecordListView::RecordListView(CliClient &client, std::string evidence, std::str
     insert(orderInput_);
     y += 1;
 
-    insert(new TButton(TRect(x, y, x + 12, y + 2), "~R~efresh", cmRecordRefresh, bfNormal));
-    insert(new TButton(TRect(x + 13, y, x + 22, y + 2), "~N~ew", cmRecordCreateNew, bfNormal));
-    insert(new TButton(TRect(x + 23, y, x + 32, y + 2), "Ed~i~t", cmRecordEdit, bfNormal));
-    insert(new TButton(TRect(x + 33, y, x + 44, y + 2), "~D~elete", cmRecordDelete, bfNormal));
-    insert(new TButton(TRect(x + 45, y, x + 56, y + 2), "~I~nfo", cmShowEvidenceInfo, bfNormal));
-    insert(new TButton(TRect(x + 57, y, x + 70, y + 2), "~P~review", cmOpenRecordWindow, bfNormal));
+    insert(new AppButton(TRect(x, y, x + 12, y + 2), "~R~efresh", cmRecordRefresh, bfNormal));
+    insert(new AppButton(TRect(x + 13, y, x + 22, y + 2), "~N~ew", cmRecordCreateNew, bfNormal));
+    insert(new AppButton(TRect(x + 23, y, x + 32, y + 2), "Edi~t~", cmRecordEdit, bfNormal));
+    insert(new AppButton(TRect(x + 33, y, x + 44, y + 2), "~D~elete", cmRecordDelete, bfNormal));
+    insert(new AppButton(TRect(x + 45, y, x + 56, y + 2), "~I~nfo", cmShowEvidenceInfo, bfNormal));
+    insert(new AppButton(TRect(x + 57, y, x + 70, y + 2), "~P~review", cmOpenRecordWindow, bfNormal));
     y += 2;
 
     short bottom = inner.b.y;
@@ -171,14 +234,23 @@ RecordListView::RecordListView(CliClient &client, std::string evidence, std::str
     detail_->showMessage("(select a record above)");
     placePanes();
     refresh();
+    // Keyboard focus starts directly on the record grid (not the Filter/
+    // Columns/Limit/Order fields above it) so Up/Down/PgUp/PgDn and Enter
+    // work immediately via TListViewer's own built-in key handling.
+    grid_->select();
 }
 
 void RecordListView::changeBounds(const TRect &bounds) {
     TWindow::changeBounds(bounds);
+    session_.updateBounds(sessionHandle_, toWindowBounds(bounds));
 
     if (size.y >= 8) {
         placePanes();
     }
+}
+
+RecordListView::~RecordListView() {
+    session_.closeWindow(sessionHandle_);
 }
 
 void RecordListView::placePanes() {
@@ -264,15 +336,40 @@ void RecordListView::refresh() {
         }
     }
 
-    grid_->setRecords(std::move(records), columns);
-    detail_->showMessage("(select a record above)");
+    // setRecords() -> setRows() focuses the first real row and drives
+    // RecordListBox::focusItem() -> onRowFocused(), which already shows that
+    // record (or the "(select a record above)" placeholder when the result
+    // is empty) - no need to reset the detail pane here afterwards.
+    grid_->setRecords(std::move(records), columns, fieldTitles_);
+    applyPendingFocus();
+}
+
+void RecordListView::applyPendingFocus() {
+    // Only relevant right after construction, when this window is being
+    // restored from a previous session with a remembered selected record -
+    // re-applying it on every manual Refresh would fight the user's own
+    // navigation, so it is consumed (cleared) after the first attempt
+    // whether or not a matching row was actually found.
+    if (pendingFocusId_.empty()) {
+        return;
+    }
+
+    const std::string id = std::move(pendingFocusId_);
+    pendingFocusId_.clear();
+    const short row = grid_->rowForId(id);
+
+    if (row >= 1) {
+        grid_->focusItemNum(row);
+    }
 }
 
 void RecordListView::onRowFocused(const nlohmann::json *record) {
     if (record == nullptr) {
         detail_->showMessage("(select a record above)");
+        session_.updateFocused(sessionHandle_, std::string());
     } else {
-        detail_->showRecord(*record);
+        detail_->showRecord(*record, &schema_);
+        session_.updateFocused(sessionHandle_, jsonField(*record, "id"));
     }
 }
 
@@ -295,7 +392,7 @@ void RecordListView::onRowActivated(const nlohmann::json *record) {
         return;
     }
 
-    detail_->showRecord(result.data);
+    detail_->showRecord(result.data, &schema_);
 }
 
 void RecordListView::openSelectedWindow() {
@@ -349,7 +446,7 @@ void RecordListView::openSelectedWindow() {
     if (evidenceHasItems(evidence_)) {
         TProgram::deskTop->insert(new DocumentPreview(client_, evidence_, id, result.data));
     } else {
-        TProgram::deskTop->insert(new RecordWindow(evidence_, id, result.data));
+        TProgram::deskTop->insert(new RecordWindow(client_, evidence_, id, result.data));
     }
 }
 

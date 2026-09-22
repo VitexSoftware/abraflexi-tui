@@ -1,4 +1,5 @@
 #include "abraflexitui/TV.h"
+#include "abraflexitui/AppButton.h"
 #include "abraflexitui/QueryView.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/CodeFormat.h"
@@ -90,13 +91,13 @@ QueryView::QueryView(CliClient &client, ProfileStore &store, std::function<void(
     insert(body_);
     insert(new TLabel(TRect(2, 3, 12, 4), "~B~ody:", body_));
 
-    TView *send = new TButton(TRect(2, 9, 14, 11), "~S~end", cmQuerySend, bfDefault);
+    TView *send = new AppButton(TRect(2, 9, 14, 11), "~S~end", cmQuerySend, bfDefault);
     stickBottom(send);
     insert(send);
-    TView *format = new TButton(TRect(16, 9, 30, 11), "~F~ormat", cmFormatCode, bfNormal);
+    TView *format = new AppButton(TRect(16, 9, 30, 11), "~F~ormat", cmFormatCode, bfNormal);
     stickBottom(format);
     insert(format);
-    TView *close = new TButton(TRect(62, 9, 74, 11), "Close", cmCancel, bfNormal);
+    TView *close = new AppButton(TRect(62, 9, 74, 11), "Close", cmCancel, bfNormal);
     stickCorner(close);
     insert(close);
 

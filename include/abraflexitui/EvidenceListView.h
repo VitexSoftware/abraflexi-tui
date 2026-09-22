@@ -2,6 +2,7 @@
 
 #include "abraflexitui/TV.h"
 #include "abraflexitui/CliClient.h"
+#include "abraflexitui/SessionStore.h"
 #include "abraflexitui/SimpleListViewer.h"
 
 #include <nlohmann/json.hpp>
@@ -31,7 +32,7 @@ private:
 
 class EvidenceListView : public TWindow {
 public:
-    explicit EvidenceListView(CliClient &client);
+    EvidenceListView(CliClient &client, SessionStore &session);
 
     void applyQuery(const std::string &query);
     void changeBounds(const TRect &bounds) override;
@@ -43,6 +44,7 @@ private:
     void setQueryText(const std::string &query);
 
     CliClient &client_;
+    SessionStore &session_;
     TInputLine *queryInput_ = nullptr;
     EvidenceListBox *list_ = nullptr;
     std::string query_;

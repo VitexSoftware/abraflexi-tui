@@ -20,6 +20,7 @@ public:
     std::size_t rowCount() const { return rows_.size(); }
 
     void getText(char *dest, short item, short maxLen) override;
+    void draw() override;
 
 protected:
     std::vector<std::string> rows_;

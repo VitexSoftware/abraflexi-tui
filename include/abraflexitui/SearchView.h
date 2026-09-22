@@ -2,6 +2,7 @@
 
 #include "abraflexitui/TV.h"
 #include "abraflexitui/CliClient.h"
+#include "abraflexitui/SessionStore.h"
 #include "abraflexitui/SimpleListViewer.h"
 
 #include <string>
@@ -12,7 +13,7 @@ namespace abraflexitui {
 // Search records in one evidence, or evidence names when the evidence field is empty.
 class SearchView : public TDialog {
 public:
-    explicit SearchView(CliClient &client);
+    SearchView(CliClient &client, SessionStore &session);
 
     void handleEvent(TEvent &event) override;
 
@@ -21,6 +22,7 @@ private:
     void openCurrent();
 
     CliClient &client_;
+    SessionStore &session_;
     TInputLine *evidence_;
     TInputLine *query_;
     SimpleListViewer *results_;

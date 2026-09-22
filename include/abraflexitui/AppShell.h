@@ -4,6 +4,7 @@
 #include "abraflexitui/AppStatusLine.h"
 #include "abraflexitui/CliClient.h"
 #include "abraflexitui/ProfileStore.h"
+#include "abraflexitui/SessionStore.h"
 
 #include <vector>
 
@@ -28,6 +29,7 @@ private:
     void openServerConfig();
     void openStatus();
     void openWebQr();
+    void restoreSessionWindows();
     void updateWindowCommands();
     void minimizeAll();
     void restoreWindows();
@@ -40,10 +42,12 @@ private:
 
     CliClient client_;
     ProfileStore store_;
+    SessionStore session_;
     AppStatusLine *statusLine_ = nullptr;
     bool offerServerChoice_ = true;
     bool pendingServerDialog_ = false;
     bool pendingStatusDialog_ = false;
+    bool pendingSessionRestore_ = false;
     bool serverDialogOpen_ = false;
     bool statusDialogOpen_ = false;
     std::vector<MinimizedWindow> minimized_;

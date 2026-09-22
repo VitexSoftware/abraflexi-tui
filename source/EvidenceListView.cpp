@@ -194,10 +194,10 @@ void EvidenceListBox::handleEvent(TEvent &event) {
     SimpleListViewer::handleEvent(event);
 }
 
-EvidenceListView::EvidenceListView(CliClient &client)
+EvidenceListView::EvidenceListView(CliClient &client, SessionStore &session)
     : TWindowInit(&TWindow::initFrame),
       TWindow(TRect(1, 1, 79, 22), "Evidences", wnNoNumber),
-      client_(client) {
+      client_(client), session_(session) {
     options |= ofCentered | ofTileable;
 
     CliClient::Result result = client.runJson({"list-evidences"});
@@ -226,6 +226,12 @@ EvidenceListView::EvidenceListView(CliClient &client)
     }
 
     queryInput_->select();
+
+    const std::string remembered = session_.searchText("evidenceFind");
+
+    if (!remembered.empty()) {
+        setQueryText(remembered);
+    }
 }
 
 void EvidenceListView::applyQuery(const std::string &query) {
@@ -235,6 +241,7 @@ void EvidenceListView::applyQuery(const std::string &query) {
 
     query_ = query;
     list_->applyFilter(query_);
+    session_.setSearchText("evidenceFind", query_);
 }
 
 void EvidenceListView::setQueryText(const std::string &query) {
@@ -295,7 +302,7 @@ void EvidenceListView::openSelected(unsigned short command, nlohmann::json *evid
     if (command == cmShowEvidenceInfo) {
         TProgram::deskTop->insert(new EvidenceInfoView(client_, path));
     } else {
-        TProgram::deskTop->insert(new RecordListView(client_, path));
+        TProgram::deskTop->insert(new RecordListView(client_, session_, path));
     }
 }
 
@@ -336,10 +343,49 @@ void EvidenceListView::handleEvent(TEvent &event) {
         }
     }
 
-    if (event.what == evKeyDown && current == queryInput_ && event.keyDown.keyCode == kbEnter) {
-        list_->activateFocused();
-        clearEvent(event);
-        return;
+    // Keyboard focus stays on the Find box while typing (see queryInput_->select()
+    // in the constructor) so the user never has to Tab away to keep filtering,
+    // but Up/Down/PgUp/PgDn should still browse the filtered list below it,
+    // with Enter opening whatever row is currently focused.
+    if (event.what == evKeyDown && current == queryInput_ && list_ != nullptr) {
+        if (event.keyDown.keyCode == kbEnter) {
+            list_->activateFocused();
+            clearEvent(event);
+            return;
+        }
+
+        short target = list_->focused;
+        bool moved = true;
+
+        switch (event.keyDown.keyCode) {
+        case kbDown:
+            target = static_cast<short>(target + 1);
+            break;
+        case kbUp:
+            target = static_cast<short>(target - 1);
+            break;
+        case kbPgDn:
+            target = static_cast<short>(target + (list_->size.y > 0 ? list_->size.y : 1));
+            break;
+        case kbPgUp:
+            target = static_cast<short>(target - (list_->size.y > 0 ? list_->size.y : 1));
+            break;
+        default:
+            moved = false;
+            break;
+        }
+
+        if (moved) {
+            // Row 0 is the header (see EvidenceListBox::activateFocused()),
+            // so the selection never lands there once there is real data.
+            if (target < 1 && list_->rowCount() > 1) {
+                target = 1;
+            }
+
+            list_->focusItemNum(target);
+            clearEvent(event);
+            return;
+        }
     }
 
     if (event.what != evCommand) {

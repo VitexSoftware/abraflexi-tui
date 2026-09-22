@@ -1,4 +1,5 @@
 #include "abraflexitui/TV.h"
+#include "abraflexitui/AppButton.h"
 #include "abraflexitui/AboutView.h"
 #include "abraflexitui/CliClient.h"
 #include "abraflexitui/WindowLayout.h"
@@ -61,10 +62,10 @@ AboutView::AboutView()
     links_->setRows(std::move(rows));
     insert(links_);
 
-    TView *open = new TButton(TRect(2, 15, 16, 17), "~O~pen", cmAboutOpen, bfDefault);
+    TView *open = new AppButton(TRect(2, 15, 16, 17), "~O~pen", cmAboutOpen, bfDefault);
     stickBottom(open);
     insert(open);
-    TView *close = new TButton(TRect(54, 15, 70, 17), "Close", cmCancel, bfNormal);
+    TView *close = new AppButton(TRect(54, 15, 70, 17), "Close", cmCancel, bfNormal);
     stickCorner(close);
     insert(close);
     selectNext(False);

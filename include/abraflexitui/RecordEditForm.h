@@ -2,13 +2,15 @@
 
 #include "abraflexitui/TV.h"
 #include "abraflexitui/CliClient.h"
+#include "abraflexitui/RecordFieldForm.h"
 
 #include <string>
 
 namespace abraflexitui {
 
-// JSON editor for an existing record. Loads `record show` and saves with
-// `record update` (AbraFlexi PUT).
+// Schema-driven editor for an existing record: a generated RecordFieldForm
+// (one input/checkbox per writable field, "Raw JSON" toggle for the rest).
+// Loads `record show` and saves with `record update` (AbraFlexi PUT).
 class RecordEditForm : public TDialog {
 public:
     RecordEditForm(CliClient &client, std::string evidence, std::string id);
@@ -16,13 +18,12 @@ public:
     void handleEvent(TEvent &event) override;
 
 private:
-    std::string readEditorText() const;
     void submit(bool dryRun);
 
     CliClient &client_;
     std::string evidence_;
     std::string id_;
-    TMemo *editor_;
+    RecordFieldForm *form_ = nullptr;
 };
 
 } // namespace abraflexitui

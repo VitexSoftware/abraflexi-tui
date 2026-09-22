@@ -1,4 +1,5 @@
 #include "abraflexitui/TV.h"
+#include "abraflexitui/AppButton.h"
 #include "abraflexitui/ChangesView.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
@@ -62,22 +63,22 @@ ChangesView::ChangesView(CliClient &client)
     stickBottom(urlLabel);
     insert(urlLabel);
 
-    TView *enable = new TButton(TRect(2, 14, 16, 16), "~E~nable", cmChangesEnable, bfNormal);
+    TView *enable = new AppButton(TRect(2, 14, 16, 16), "~E~nable", cmChangesEnable, bfNormal);
     stickBottom(enable);
     insert(enable);
-    TView *disable = new TButton(TRect(17, 14, 31, 16), "~D~isable", cmChangesDisable, bfNormal);
+    TView *disable = new AppButton(TRect(17, 14, 31, 16), "~D~isable", cmChangesDisable, bfNormal);
     stickBottom(disable);
     insert(disable);
-    TView *reg = new TButton(TRect(32, 14, 48, 16), "~R~egister", cmChangesRegister, bfNormal);
+    TView *reg = new AppButton(TRect(32, 14, 48, 16), "~R~egister", cmChangesRegister, bfNormal);
     stickBottom(reg);
     insert(reg);
-    TView *unreg = new TButton(TRect(49, 14, 66, 16), "Unre~g~ister", cmChangesUnregister, bfNormal);
+    TView *unreg = new AppButton(TRect(49, 14, 66, 16), "Unre~g~ister", cmChangesUnregister, bfNormal);
     stickBottom(unreg);
     insert(unreg);
-    TView *refresh = new TButton(TRect(2, 17, 16, 19), "Re~f~resh", cmChangesReload, bfNormal);
+    TView *refresh = new AppButton(TRect(2, 17, 16, 19), "Re~f~resh", cmChangesReload, bfNormal);
     stickBottom(refresh);
     insert(refresh);
-    TView *close = new TButton(TRect(54, 17, 66, 19), "Close", cmCancel, bfNormal);
+    TView *close = new AppButton(TRect(54, 17, 66, 19), "Close", cmCancel, bfNormal);
     stickCorner(close);
     insert(close);
 

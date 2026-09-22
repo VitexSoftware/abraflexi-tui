@@ -1,4 +1,5 @@
 #include "abraflexitui/TV.h"
+#include "abraflexitui/AppButton.h"
 #include "abraflexitui/SearchView.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
@@ -23,10 +24,10 @@ void setLine(TInputLine *input, const char *text) {
 
 } // namespace
 
-SearchView::SearchView(CliClient &client)
+SearchView::SearchView(CliClient &client, SessionStore &session)
     : TWindowInit(&TDialog::initFrame),
       TDialog(TRect(4, 2, 76, 22), "Find"),
-      client_(client) {
+      client_(client), session_(session) {
     options |= ofCentered;
     makeMaximizable(*this);
 
@@ -40,11 +41,11 @@ SearchView::SearchView(CliClient &client)
     TView *hint = new TStaticText(TRect(2, 3, 72, 4), "Empty evidence searches catalogue names. Enter opens the hit.");
     growWide(hint);
     insert(hint);
-    TView *search = new TButton(TRect(2, 4, 14, 6), "~S~earch", cmSearchRun, bfDefault);
+    TView *search = new AppButton(TRect(2, 4, 14, 6), "~S~earch", cmSearchRun, bfDefault);
     insert(search);
-    TView *open = new TButton(TRect(16, 4, 28, 6), "~O~pen", cmSearchOpen, bfNormal);
+    TView *open = new AppButton(TRect(16, 4, 28, 6), "~O~pen", cmSearchOpen, bfNormal);
     insert(open);
-    TView *close = new TButton(TRect(60, 4, 72, 6), "Close", cmCancel, bfNormal);
+    TView *close = new AppButton(TRect(60, 4, 72, 6), "Close", cmCancel, bfNormal);
     stickRight(close);
     insert(close);
 
@@ -129,7 +130,7 @@ void SearchView::openCurrent() {
     const std::string &id = hitId_[static_cast<std::size_t>(index)];
 
     if (id.empty()) {
-        TProgram::deskTop->insert(new RecordListView(client_, evidence));
+        TProgram::deskTop->insert(new RecordListView(client_, session_, evidence));
         return;
     }
 
@@ -157,7 +158,7 @@ void SearchView::openCurrent() {
     growFill(list);
     list->setRows(std::move(lines));
     dlg->insert(list);
-    TView *ok = new TButton(TRect(28, 16, 40, 18), "O~K~", cmOK, bfDefault);
+    TView *ok = new AppButton(TRect(28, 16, 40, 18), "O~K~", cmOK, bfDefault);
     stickBottom(ok);
     dlg->insert(ok);
     TProgram::application->executeDialog(dlg);

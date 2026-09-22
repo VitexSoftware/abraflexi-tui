@@ -1,4 +1,5 @@
 #include "abraflexitui/TV.h"
+#include "abraflexitui/AppButton.h"
 #include "abraflexitui/ServerConfigView.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
@@ -128,13 +129,13 @@ public:
         insert(token_);
         growWide(token_);
 
-        TView *tokenButton = new TButton(TRect(x, 13, x + 16, 15), "Get ~T~oken...", cmServerGetToken, bfNormal);
+        TView *tokenButton = new AppButton(TRect(x, 13, x + 16, 15), "Get ~T~oken...", cmServerGetToken, bfNormal);
         stickBottom(tokenButton);
         insert(tokenButton);
-        TView *ok = new TButton(TRect(right - 24, 16, right - 12, 18), "~O~K", cmOK, bfDefault);
+        TView *ok = new AppButton(TRect(right - 24, 16, right - 12, 18), "~O~K", cmOK, bfDefault);
         stickCorner(ok);
         insert(ok);
-        TView *cancel = new TButton(TRect(right - 11, 16, right, 18), "Cancel", cmCancel, bfNormal);
+        TView *cancel = new AppButton(TRect(right - 11, 16, right, 18), "Cancel", cmCancel, bfNormal);
         stickCorner(cancel);
         insert(cancel);
 
@@ -292,19 +293,19 @@ ServerConfigView::ServerConfigView(ProfileStore &store, CliClient &client, std::
     growFill(list_);
     insert(list_);
 
-    TView *add = new TButton(TRect(x, row1, x + 12, row1 + 2), "~A~dd", cmServerAdd, bfNormal);
+    TView *add = new AppButton(TRect(x, row1, x + 12, row1 + 2), "~A~dd", cmServerAdd, bfNormal);
     stickBottom(add);
     insert(add);
-    TView *edit = new TButton(TRect(x + 13, row1, x + 25, row1 + 2), "~E~dit", cmServerEdit, bfNormal);
+    TView *edit = new AppButton(TRect(x + 13, row1, x + 25, row1 + 2), "~E~dit", cmServerEdit, bfNormal);
     stickBottom(edit);
     insert(edit);
-    TView *remove = new TButton(TRect(x + 26, row1, x + 40, row1 + 2), "~D~elete", cmServerDelete, bfNormal);
+    TView *remove = new AppButton(TRect(x + 26, row1, x + 40, row1 + 2), "~D~elete", cmServerDelete, bfNormal);
     stickBottom(remove);
     insert(remove);
-    TView *activate = new TButton(TRect(x, row2, x + 16, row2 + 2), "~S~et Active", cmServerSetActive, bfNormal);
+    TView *activate = new AppButton(TRect(x, row2, x + 16, row2 + 2), "~S~et Active", cmServerSetActive, bfNormal);
     stickBottom(activate);
     insert(activate);
-    TView *close = new TButton(TRect(right - 12, row2, right, row2 + 2), "Close", cmCancel, bfNormal);
+    TView *close = new AppButton(TRect(right - 12, row2, right, row2 + 2), "Close", cmCancel, bfNormal);
     stickCorner(close);
     insert(close);
 

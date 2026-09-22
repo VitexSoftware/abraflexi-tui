@@ -28,15 +28,19 @@ add_executable(abraflexi-tui
     source/CliClient.cpp
     source/DisplayUrl.cpp
     source/ProfileStore.cpp
+    source/SessionStore.cpp
     source/SimpleListViewer.cpp
     source/AppShell.cpp
     source/AppStatusLine.cpp
+    source/AppButton.cpp
     source/ServerConfigView.cpp
     source/StatusView.cpp
     source/CompanyListView.cpp
     source/EvidenceListView.cpp
+    source/EvidenceSchema.cpp
     source/RecordDetailView.cpp
     source/RecordListView.cpp
+    source/RecordFieldForm.cpp
     source/RecordCreateForm.cpp
     source/RecordEditForm.cpp
     source/EvidenceInfoView.cpp

@@ -9,6 +9,13 @@ namespace abraflexitui {
 class StatusView : public TDialog {
 public:
     explicit StatusView(CliClient &client);
+
+    TColorAttr mapColor(uchar index) override;
+
+private:
+    enum class Signal { Ok, BadCredentials, Unreachable };
+
+    Signal signal_ = Signal::Unreachable;
 };
 
 } // namespace abraflexitui

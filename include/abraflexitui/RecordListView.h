@@ -2,9 +2,12 @@
 
 #include "abraflexitui/TV.h"
 #include "abraflexitui/CliClient.h"
+#include "abraflexitui/EvidenceSchema.h"
+#include "abraflexitui/SessionStore.h"
 #include "abraflexitui/SimpleListViewer.h"
 #include "abraflexitui/RecordDetailView.h"
 
+#include <map>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
@@ -19,8 +22,17 @@ class RecordListBox : public SimpleListViewer {
 public:
     RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, RecordListView &ownerView) noexcept;
 
-    void setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns);
+    // `titles` maps a column's raw property name to its schema title
+    // (EvidenceSchema); a column missing from it prints its raw name, same
+    // as when `titles` is left empty (no schema available for this
+    // evidence).
+    void setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns,
+                     const std::map<std::string, std::string> &titles = {});
     const nlohmann::json *selectedRecord() const;
+    // Row index (matching focusItemNum()'s convention, i.e. 1-based since
+    // row 0 is the header) of the record whose "id" field equals `id`, or
+    // -1 if there is no such record in the current result set.
+    short rowForId(const std::string &id) const;
 
     void focusItem(short item) override;
     void handleEvent(TEvent &event) override;
@@ -35,8 +47,10 @@ private:
 // there is no per-evidence subclass.
 class RecordListView : public TWindow {
 public:
-    RecordListView(CliClient &client, std::string evidence, std::string columns = "id,kod,nazev",
-                    int limit = 20);
+    RecordListView(CliClient &client, SessionStore &session, std::string evidence,
+                    std::string columns = "id,kod,nazev", int limit = 20, std::string initialFocusId = {},
+                    const WindowBounds *initialBounds = nullptr);
+    ~RecordListView() override;
 
     void refresh();
     void onRowFocused(const nlohmann::json *record);
@@ -55,9 +69,15 @@ private:
     void showFields();
     void openSelectedWindow();
     void placePanes();
+    void applyPendingFocus();
 
     CliClient &client_;
+    SessionStore &session_;
     std::string evidence_;
+    std::vector<FieldSchema> schema_;
+    std::map<std::string, std::string> fieldTitles_;
+    int sessionHandle_ = 0;
+    std::string pendingFocusId_;
 
     TInputLine *filterInput_;
     TInputLine *columnsInput_;

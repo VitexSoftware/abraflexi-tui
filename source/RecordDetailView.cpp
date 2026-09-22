@@ -16,7 +16,60 @@ void RecordDetailView::showMessage(const std::string &text) {
     setRows({text});
 }
 
-void RecordDetailView::showRecord(const nlohmann::json &record) {
+namespace {
+
+// True/false spelled out the way the field is actually shown: AbraFlexi's
+// "logic" fields round-trip either as JSON booleans or as the "true"/
+// "false" strings the offline/online properties schema itself uses.
+bool isLogicValue(const nlohmann::json &value) {
+    return value.is_boolean() || value == "true" || value == "false";
+}
+
+bool logicIsTrue(const nlohmann::json &value) {
+    return value.is_boolean() ? value.get<bool>() : value == "true";
+}
+
+void appendField(std::vector<std::string> &rows, const std::string &label, const nlohmann::json &value,
+                  const FieldSchema *field) {
+    if (value.is_object() || value.is_array()) {
+        std::string pretty = value.dump(2);
+        std::istringstream iss(pretty);
+        std::string line;
+        bool first = true;
+
+        while (std::getline(iss, line)) {
+            if (first) {
+                rows.push_back(label + ": " + line);
+                first = false;
+            } else {
+                rows.push_back("  " + line);
+            }
+        }
+
+        if (first) {
+            rows.push_back(label + ": " + pretty);
+        }
+
+        return;
+    }
+
+    if (field != nullptr && field->type == "logic" && isLogicValue(value)) {
+        rows.push_back(label + ": " + (logicIsTrue(value) ? "Ano" : "Ne"));
+        return;
+    }
+
+    std::string v = value.is_null() ? std::string() : (value.is_string() ? value.get<std::string>() : value.dump());
+
+    if (field != nullptr && field->type == "relation" && !v.empty() && !field->relationEvidence.empty()) {
+        v += " (\xE2\x86\x92 " + field->relationEvidence + ")";
+    }
+
+    rows.push_back(label + ": " + v);
+}
+
+} // namespace
+
+void RecordDetailView::showRecord(const nlohmann::json &record, const std::vector<FieldSchema> *schema) {
     std::vector<std::string> rows;
 
     if (!record.is_object()) {
@@ -25,34 +78,25 @@ void RecordDetailView::showRecord(const nlohmann::json &record) {
         return;
     }
 
-    for (auto it = record.begin(); it != record.end(); ++it) {
-        const std::string &key = it.key();
-        const nlohmann::json &value = it.value();
+    std::vector<std::string> handled;
 
-        if (value.is_object() || value.is_array()) {
-            std::string pretty = value.dump(2);
-            std::istringstream iss(pretty);
-            std::string line;
-            bool first = true;
-
-            while (std::getline(iss, line)) {
-                if (first) {
-                    rows.push_back(key + ": " + line);
-                    first = false;
-                } else {
-                    rows.push_back("  " + line);
-                }
+    if (schema != nullptr) {
+        for (const auto &field : *schema) {
+            if (!field.visible || !record.contains(field.name)) {
+                continue;
             }
 
-            if (first) {
-                rows.push_back(key + ": " + pretty);
-            }
-        } else {
-            std::string v = value.is_null()
-                                 ? std::string()
-                                 : (value.is_string() ? value.get<std::string>() : value.dump());
-            rows.push_back(key + ": " + v);
+            handled.push_back(field.name);
+            appendField(rows, field.title.empty() ? field.name : field.title, record.at(field.name), &field);
         }
+    }
+
+    for (auto it = record.begin(); it != record.end(); ++it) {
+        if (std::find(handled.begin(), handled.end(), it.key()) != handled.end()) {
+            continue;
+        }
+
+        appendField(rows, it.key(), it.value(), nullptr);
     }
 
     if (rows.empty()) {
@@ -119,17 +163,19 @@ std::string recordTitle(const std::string &evidence, const std::string &id, cons
 
 } // namespace
 
-RecordWindow::RecordWindow(const std::string &evidence, const std::string &id, const nlohmann::json &record)
+RecordWindow::RecordWindow(CliClient &client, const std::string &evidence, const std::string &id,
+                            const nlohmann::json &record)
     : TWindowInit(&TWindow::initFrame),
       TWindow(cascadedRecordRect(), recordTitle(evidence, id, record), wnNoNumber),
       evidence_(evidence), id_(id) {
     options |= ofTileable;
     growMode = gfGrowHiX | gfGrowHiY;
 
+    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client, evidence_);
     TScrollBar *bar = standardScrollBar(sbVertical | sbHandleKeyboard);
     RecordDetailView *detail = new RecordDetailView(getExtent().grow(-1, -1), bar);
     growFill(detail);
-    detail->showRecord(record);
+    detail->showRecord(record, &schema);
     insert(detail);
 }
 
