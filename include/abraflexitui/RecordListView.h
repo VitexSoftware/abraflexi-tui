@@ -68,6 +68,7 @@ private:
     void editSelected();
     void deleteSelected();
     void showFields();
+    void printSelected();
     void openSelectedWindow();
     void placePanes();
     void applyPendingFocus();
