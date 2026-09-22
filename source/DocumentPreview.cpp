@@ -1,6 +1,7 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/AppButton.h"
 #include "abraflexitui/DocumentPreview.h"
+#include "abraflexitui/PrintDialog.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/SimpleListViewer.h"
@@ -245,6 +246,7 @@ DocumentPreview::DocumentPreview(CliClient &client, std::string evidence, std::s
     insert(new AppButton(TRect(x, y, x + 12, y + 2), "~F~ilter", cmPreviewFilter, bfNormal));
     insert(new AppButton(TRect(x + 13, y, x + 23, y + 2), "~S~ort", cmPreviewSort, bfNormal));
     insert(new AppButton(TRect(x + 24, y, x + 36, y + 2), "~R~efresh", cmPreviewRefresh, bfNormal));
+    insert(new AppButton(TRect(x + 37, y, x + 48, y + 2), "Prin~t~", cmRecordPrint, bfNormal));
     y = static_cast<short>(y + 2);
 
     status_ = new StatusLine(TRect(x, y, right, y + 1), "");
@@ -429,6 +431,13 @@ void DocumentPreview::handleEvent(TEvent &event) {
             reloadItems();
             clearEvent(event);
             break;
+
+        case cmRecordPrint: {
+            PrintDialog *dlg = new PrintDialog(client_, evidence_, id_, company_);
+            TProgram::application->executeDialog(dlg);
+            clearEvent(event);
+            break;
+        }
 
         default:
             break;

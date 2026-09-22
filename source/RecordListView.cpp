@@ -5,6 +5,7 @@
 #include "abraflexitui/RecordEditForm.h"
 #include "abraflexitui/EvidenceInfoView.h"
 #include "abraflexitui/DocumentPreview.h"
+#include "abraflexitui/PrintDialog.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/WindowLayout.h"
@@ -191,7 +192,7 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
 
     insert(new TStaticText(
         TRect(x, y, right, y + 1),
-        "F5=Refresh  Enter=Show  F4=Preview  F2=Fields  Esc=Close"));
+        "F5=Refresh  Enter=Show  F4=Preview  F2=Fields  Alt+P=Print  Esc=Close"));
     y += 1;
 
     insert(new TStaticText(TRect(x, y, x + 7, y + 1), "Filter:"));
@@ -212,12 +213,13 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
     insert(orderInput_);
     y += 1;
 
-    insert(new AppButton(TRect(x, y, x + 12, y + 2), "~R~efresh", cmRecordRefresh, bfNormal));
-    insert(new AppButton(TRect(x + 13, y, x + 22, y + 2), "~N~ew", cmRecordCreateNew, bfNormal));
-    insert(new AppButton(TRect(x + 23, y, x + 32, y + 2), "Edi~t~", cmRecordEdit, bfNormal));
-    insert(new AppButton(TRect(x + 33, y, x + 44, y + 2), "~D~elete", cmRecordDelete, bfNormal));
-    insert(new AppButton(TRect(x + 45, y, x + 56, y + 2), "~I~nfo", cmShowEvidenceInfo, bfNormal));
-    insert(new AppButton(TRect(x + 57, y, x + 70, y + 2), "~P~review", cmOpenRecordWindow, bfNormal));
+    insert(new AppButton(TRect(x, y, x + 10, y + 2), "~R~efresh", cmRecordRefresh, bfNormal));
+    insert(new AppButton(TRect(x + 11, y, x + 19, y + 2), "~N~ew", cmRecordCreateNew, bfNormal));
+    insert(new AppButton(TRect(x + 20, y, x + 28, y + 2), "Edi~t~", cmRecordEdit, bfNormal));
+    insert(new AppButton(TRect(x + 29, y, x + 38, y + 2), "~D~elete", cmRecordDelete, bfNormal));
+    insert(new AppButton(TRect(x + 39, y, x + 48, y + 2), "~I~nfo", cmShowEvidenceInfo, bfNormal));
+    insert(new AppButton(TRect(x + 49, y, x + 60, y + 2), "~P~review", cmOpenRecordWindow, bfNormal));
+    insert(new AppButton(TRect(x + 61, y, x + 71, y + 2), "Prin~t~", cmRecordPrint, bfNormal));
     y += 2;
 
     short bottom = inner.b.y;
@@ -508,6 +510,25 @@ void RecordListView::showFields() {
     TProgram::deskTop->insert(new EvidenceInfoView(client_, evidence_, company_));
 }
 
+void RecordListView::printSelected() {
+    const nlohmann::json *record = grid_->selectedRecord();
+
+    if (record == nullptr) {
+        messageBox("Select a record first.", mfError | mfOKButton);
+        return;
+    }
+
+    const std::string id = jsonField(*record, "id");
+
+    if (id.empty()) {
+        messageBox("The selected row has no id.", mfError | mfOKButton);
+        return;
+    }
+
+    PrintDialog *dlg = new PrintDialog(client_, evidence_, id, company_);
+    TProgram::application->executeDialog(dlg);
+}
+
 void RecordListView::handleEvent(TEvent &event) {
     TWindow::handleEvent(event);
 
@@ -550,10 +571,19 @@ void RecordListView::handleEvent(TEvent &event) {
             clearEvent(event);
             break;
 
+        case cmRecordPrint:
+            printSelected();
+            clearEvent(event);
+            break;
+
         default:
             break;
         }
     } else if (event.what == evKeyDown) {
+        if (event.keyDown.keyCode == kbAltP) {
+            printSelected();
+            clearEvent(event);
+        } else
         if (event.keyDown.keyCode == kbF5) {
             refresh();
             clearEvent(event);

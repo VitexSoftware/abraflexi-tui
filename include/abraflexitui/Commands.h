@@ -39,6 +39,7 @@ constexpr unsigned short cmOpenRecordWindow = 1040;
 constexpr unsigned short cmPreviewFilter = 1041;
 constexpr unsigned short cmPreviewSort = 1042;
 constexpr unsigned short cmPreviewRefresh = 1043;
+constexpr unsigned short cmRecordPrint = 1047;
 
 // Standard Turbo Vision command ids (0-255) so the Window menu can disable them.
 constexpr unsigned short cmMinimizeAll = 200;

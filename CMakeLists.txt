@@ -52,6 +52,8 @@ add_executable(abraflexi-tui
     source/AboutView.cpp
     source/QrCodeView.cpp
     source/DocumentPreview.cpp
+    source/PrinterUtil.cpp
+    source/PrintDialog.cpp
     vendor/qrcodegen/qrcodegen.cpp
 )
 
