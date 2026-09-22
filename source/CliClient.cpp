@@ -1,16 +1,113 @@
 #include "abraflexitui/CliClient.h"
 #include "abraflexitui/DisplayUrl.h"
 
+#include <sys/stat.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <cstdlib>
+#include <ctime>
+#include <filesystem>
+#include <sstream>
 #include <thread>
 #include <utility>
 
 namespace abraflexitui {
 
 namespace {
+
+std::string cliLogPath() {
+    const char *xdg = std::getenv("XDG_STATE_HOME");
+    std::string dir;
+
+    if (xdg != nullptr && xdg[0] != '\0') {
+        dir = xdg;
+    } else {
+        const char *home = std::getenv("HOME");
+
+        if (home == nullptr || home[0] == '\0') {
+            return std::string();
+        }
+
+        dir = std::string(home) + "/.local/state";
+    }
+
+    return dir + "/abraflexi-tui/abraflexi-tui.log";
+}
+
+std::string localTimestamp() {
+    const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm local {};
+    localtime_r(&now, &local);
+    char buf[32];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &local);
+    return buf;
+}
+
+std::string joinArgv(const std::vector<std::string> &argv) {
+    std::ostringstream out;
+
+    for (std::size_t i = 0; i < argv.size(); ++i) {
+        if (i != 0) {
+            out << ' ';
+        }
+
+        out << argv[i];
+    }
+
+    return out.str();
+}
+
+std::string capturedText(const std::string &text) {
+    if (text.empty()) {
+        return "(empty)\n";
+    }
+
+    constexpr std::size_t kMax = 8192;
+    std::string body = text.size() > kMax ? text.substr(0, kMax) + "\n... truncated\n" : text;
+
+    if (body.back() != '\n') {
+        body.push_back('\n');
+    }
+
+    return body;
+}
+
+std::string appendCliLog(const std::string &error, const std::string &requestUrl, const std::vector<std::string> &argv,
+                         const ProcessResult &pr) {
+    const std::string path = cliLogPath();
+
+    if (path.empty()) {
+        return std::string();
+    }
+
+    const std::filesystem::path file(path);
+    std::error_code ec;
+    std::filesystem::create_directories(file.parent_path(), ec);
+
+    if (ec) {
+        return std::string();
+    }
+
+    ::chmod(file.parent_path().c_str(), 0700);
+
+    const int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0600);
+
+    if (fd < 0) {
+        return std::string();
+    }
+
+    const std::string entry = localTimestamp() + " " + error + "\ncommand: " + joinArgv(argv) +
+                              "\nrequest: " + (requestUrl.empty() ? "(none)" : requestUrl) +
+                              "\nexit: " + std::to_string(pr.exitCode) + "\nstdout:\n" + capturedText(pr.stdOut) +
+                              "stderr:\n" + capturedText(pr.stdErr) + "\n";
+    const ssize_t written = ::write(fd, entry.data(), entry.size());
+    ::close(fd);
+
+    return written == static_cast<ssize_t>(entry.size()) ? path : std::string();
+}
 
 void readAll(int fd, std::string &out) {
     char buf[4096];
@@ -222,10 +319,34 @@ CliClient::Result CliClient::runJsonImpl(const std::vector<std::string> &args,
 
     ProcessResult pr = ProcessRunner::run(argv, env);
 
+    std::string url = displayUrl_;
+    std::string company = displayCompany_;
+    const auto urlIt = env.find("ABRAFLEXI_URL");
+    const auto companyIt = env.find("ABRAFLEXI_COMPANY");
+
+    if (urlIt != env.end()) {
+        url = urlIt->second;
+    }
+
+    if (companyIt != env.end()) {
+        company = companyIt->second;
+    }
+
+    const std::string requestUrl = buildDisplayUrl(url, company, args);
+
+    auto noteFailure = [&]() {
+        const std::string logPath = appendCliLog(result.errorMessage, requestUrl, argv, pr);
+
+        if (!logPath.empty()) {
+            result.errorMessage += "\nLogged to " + logPath;
+        }
+    };
+
     if (pr.spawnFailed) {
         result.ok = false;
         result.exitCode = pr.exitCode;
         result.errorMessage = binaryPath_ + " not found on PATH (or at the configured --cli path)";
+        noteFailure();
         return result;
     }
 
@@ -241,6 +362,7 @@ CliClient::Result CliClient::runJsonImpl(const std::vector<std::string> &args,
             result.errorMessage += " (stderr: " + pr.stdErr + ")";
         }
 
+        noteFailure();
         return result;
     }
 
@@ -253,6 +375,7 @@ CliClient::Result CliClient::runJsonImpl(const std::vector<std::string> &args,
             result.errorMessage = binaryPath_ + " exited with code " + std::to_string(pr.exitCode);
         }
 
+        noteFailure();
         return result;
     }
 

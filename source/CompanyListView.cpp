@@ -64,9 +64,15 @@ CompanyListView::CompanyListView(CliClient &client, std::function<void(const std
         dbNames_.push_back(std::string());
 
         for (const auto &company : result.data) {
-            rows.push_back(fitColumn(jsonField(company, "dbName"), 20) + " " +
-                           fitColumn(jsonField(company, "nazev"), 30) + " " + jsonField(company, "stavEnum"));
-            dbNames_.push_back(jsonField(company, "dbName"));
+            std::string dbName = jsonField(company, "dbName");
+
+            if (dbName.empty()) {
+                dbName = jsonField(company, "dbNazev");
+            }
+
+            rows.push_back(fitColumn(dbName, 20) + " " + fitColumn(jsonField(company, "nazev"), 30) + " " +
+                           jsonField(company, "stavEnum"));
+            dbNames_.push_back(dbName);
         }
     }
 

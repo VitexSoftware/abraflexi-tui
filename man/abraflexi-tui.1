@@ -57,6 +57,15 @@ and made active.
 If a profile is already active, the Status dialog is shown at startup.
 If no profile is active, the Servers dialog is shown so a configuration
 can be chosen.
+.TP
+.I ~/.local/state/abraflexi\-tui/abraflexi\-tui.log
+Failures from
+.B abraflexi\-cli
+(invalid JSON, a non-zero exit, or a missing binary). Each entry records the
+command, the request URL, the exit code, and stdout and stderr. Created mode
+0600. \fBXDG_STATE_HOME\fR overrides
+.I ~/.local/state
+when set.
 .SH SCREENS
 .TP
 .B About (F1, Help menu)
