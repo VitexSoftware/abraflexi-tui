@@ -282,6 +282,9 @@ CliClient::Result CliClient::runJson(const std::vector<std::string> &args) const
 
 CliClient::Result CliClient::runJsonForCompany(const std::vector<std::string> &args,
                                                const std::string &company) const {
+    if (company.empty()) {
+        return runJson(args);
+    }
     std::map<std::string, std::string> overrideEnv = extraEnv_;
     overrideEnv["ABRAFLEXI_COMPANY"] = company;
     return runJsonImpl(args, &overrideEnv);
