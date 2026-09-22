@@ -20,12 +20,15 @@ std::string flag(const nlohmann::json &item, const char *key) {
 
 } // namespace
 
-EvidenceInfoView::EvidenceInfoView(CliClient &client, std::string evidence)
+EvidenceInfoView::EvidenceInfoView(CliClient &client, std::string evidence, std::string company)
     : TWindowInit(&TWindow::initFrame),
-      TWindow(TRect(2, 1, 78, 23), ("Structure: " + evidence).c_str(), wnNoNumber) {
+      TWindow(TRect(2, 1, 78, 23),
+              ("Structure: " + evidence + " [" + (company.empty() ? client.company() : company) + "]").c_str(),
+              wnNoNumber),
+      company_(company.empty() ? client.company() : std::move(company)) {
     options |= ofCentered | ofTileable;
 
-    CliClient::Result result = client.runJson({"record", evidence, "properties"});
+    CliClient::Result result = client.runJsonForCompany({"record", evidence, "properties"}, company_);
     std::vector<std::string> rows;
 
     if (!result.ok) {

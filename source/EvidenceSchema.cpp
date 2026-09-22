@@ -26,16 +26,20 @@ std::map<std::string, std::vector<FieldSchema>> &cache() {
 
 } // namespace
 
-const std::vector<FieldSchema> &EvidenceSchema::fetch(CliClient &client, const std::string &evidence) {
+const std::vector<FieldSchema> &EvidenceSchema::fetch(CliClient &client, const std::string &evidence,
+                                                      const std::string &company) {
     auto &store = cache();
-    auto it = store.find(evidence);
+    std::string key = company.empty() ? evidence : company + ":" + evidence;
+    auto it = store.find(key);
 
     if (it != store.end()) {
         return it->second;
     }
 
     std::vector<FieldSchema> fields;
-    CliClient::Result result = client.runJson({"record", evidence, "properties"});
+    CliClient::Result result = company.empty()
+                                   ? client.runJson({"record", evidence, "properties"})
+                                   : client.runJsonForCompany({"record", evidence, "properties"}, company);
 
     if (result.ok && result.data.contains("columns") && result.data.at("columns").is_array()) {
         for (const auto &column : result.data.at("columns")) {
@@ -61,7 +65,7 @@ const std::vector<FieldSchema> &EvidenceSchema::fetch(CliClient &client, const s
         }
     }
 
-    auto inserted = store.emplace(evidence, std::move(fields));
+    auto inserted = store.emplace(key, std::move(fields));
     return inserted.first->second;
 }
 

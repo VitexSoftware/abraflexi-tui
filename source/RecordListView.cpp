@@ -146,16 +146,19 @@ void RecordListBox::handleEvent(TEvent &event) {
 
 RecordListView::RecordListView(CliClient &client, SessionStore &session, std::string evidence,
                                 std::string columns, int limit, std::string initialFocusId,
-                                const WindowBounds *initialBounds)
+                                const WindowBounds *initialBounds, std::string company)
     : TWindowInit(&TWindow::initFrame),
-      TWindow(initialWindowRect(initialBounds), ("Records: " + evidence).c_str(), wnNoNumber),
+      TWindow(initialWindowRect(initialBounds),
+              ("Records: " + evidence + " [" + (company.empty() ? client.company() : company) + "]").c_str(),
+              wnNoNumber),
       client_(client), session_(session), evidence_(std::move(evidence)),
+      company_(company.empty() ? client.company() : std::move(company)),
       pendingFocusId_(std::move(initialFocusId)) {
-    sessionHandle_ = session_.openWindow(evidence_, pendingFocusId_, initialBounds);
+    sessionHandle_ = session_.openWindow(evidence_, company_, pendingFocusId_, initialBounds);
     options |= ofTileable;
     growMode = gfGrowHiX | gfGrowHiY;
 
-    schema_ = EvidenceSchema::fetch(client_, evidence_);
+    schema_ = EvidenceSchema::fetch(client_, evidence_, company_);
 
     for (const auto &field : schema_) {
         if (!field.title.empty()) {
@@ -320,7 +323,7 @@ void RecordListView::refresh() {
         args.push_back(std::string("--order=") + orderInput_->data);
     }
 
-    CliClient::Result result = client_.runJson(args);
+    CliClient::Result result = client_.runJsonForCompany(args, company_);
 
     if (!result.ok) {
         grid_->setRecords({}, columns);
@@ -385,7 +388,7 @@ void RecordListView::onRowActivated(const nlohmann::json *record) {
         return;
     }
 
-    CliClient::Result result = client_.runJson({"record", evidence_, "show", id});
+    CliClient::Result result = client_.runJsonForCompany({"record", evidence_, "show", id}, company_);
 
     if (!result.ok) {
         detail_->showMessage("Error: " + result.errorMessage);
@@ -435,7 +438,7 @@ void RecordListView::openSelectedWindow() {
         return;
     }
 
-    CliClient::Result result = client_.runJson({"record", evidence_, "show", id});
+    CliClient::Result result = client_.runJsonForCompany({"record", evidence_, "show", id}, company_);
 
     if (!result.ok) {
         messageBox(result.errorMessage.empty() ? std::string("Could not open the record") : result.errorMessage,
@@ -444,9 +447,9 @@ void RecordListView::openSelectedWindow() {
     }
 
     if (evidenceHasItems(evidence_)) {
-        TProgram::deskTop->insert(new DocumentPreview(client_, evidence_, id, result.data));
+        TProgram::deskTop->insert(new DocumentPreview(client_, evidence_, id, result.data, company_));
     } else {
-        TProgram::deskTop->insert(new RecordWindow(client_, evidence_, id, result.data));
+        TProgram::deskTop->insert(new RecordWindow(client_, evidence_, id, result.data, company_));
     }
 }
 
@@ -465,7 +468,7 @@ void RecordListView::editSelected() {
         return;
     }
 
-    RecordEditForm *form = new RecordEditForm(client_, evidence_, id);
+    RecordEditForm *form = new RecordEditForm(client_, evidence_, id, company_);
 
     if (TProgram::application->executeDialog(form) == cmOK) {
         refresh();
@@ -491,7 +494,7 @@ void RecordListView::deleteSelected() {
         return;
     }
 
-    CliClient::Result result = client_.runJson({"record", evidence_, "delete", id});
+    CliClient::Result result = client_.runJsonForCompany({"record", evidence_, "delete", id}, company_);
 
     if (!result.ok) {
         messageBox(result.errorMessage.empty() ? std::string("Delete failed") : result.errorMessage, mfError | mfOKButton);
@@ -502,7 +505,7 @@ void RecordListView::deleteSelected() {
 }
 
 void RecordListView::showFields() {
-    TProgram::deskTop->insert(new EvidenceInfoView(client_, evidence_));
+    TProgram::deskTop->insert(new EvidenceInfoView(client_, evidence_, company_));
 }
 
 void RecordListView::handleEvent(TEvent &event) {
@@ -516,7 +519,7 @@ void RecordListView::handleEvent(TEvent &event) {
             break;
 
         case cmRecordCreateNew: {
-            RecordCreateForm *form = new RecordCreateForm(client_, evidence_);
+            RecordCreateForm *form = new RecordCreateForm(client_, evidence_, company_);
             ushort closedWith = TProgram::application->executeDialog(form);
 
             if (closedWith == cmOK) {

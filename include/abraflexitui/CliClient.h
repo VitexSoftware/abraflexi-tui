@@ -44,6 +44,7 @@ public:
     };
 
     Result runJson(const std::vector<std::string> &args) const;
+    Result runJsonForCompany(const std::vector<std::string> &args, const std::string &company) const;
 
     // One-shot environment for calls that must not use the saved profile
     // (the "Get Token" login). Skips --envfile. Not persisted.
@@ -58,6 +59,7 @@ public:
 
     const std::string &binaryPath() const { return binaryPath_; }
     const std::string &envFile() const { return envFilePath_; }
+    const std::string &company() const { return displayCompany_; }
 
 private:
     Result runJsonImpl(const std::vector<std::string> &args, const std::map<std::string, std::string> *overrideEnv) const;
