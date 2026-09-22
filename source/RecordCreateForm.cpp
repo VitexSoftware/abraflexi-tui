@@ -10,14 +10,16 @@
 
 namespace abraflexitui {
 
-RecordCreateForm::RecordCreateForm(CliClient &client, std::string evidence)
+RecordCreateForm::RecordCreateForm(CliClient &client, std::string evidence, std::string company)
     : TWindowInit(&TDialog::initFrame),
-      TDialog(TRect(3, 1, 77, 23), ("New record: " + evidence).c_str()),
-      client_(client), evidence_(std::move(evidence)) {
+      TDialog(TRect(3, 1, 77, 23),
+              ("New record: " + evidence + " [" + (company.empty() ? client.company() : company) + "]").c_str()),
+      client_(client), evidence_(std::move(evidence)),
+      company_(company.empty() ? client.company() : std::move(company)) {
     options |= ofCentered;
     makeMaximizable(*this);
 
-    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client_, evidence_);
+    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client_, evidence_, company_);
 
     TRect inner = getExtent();
     inner.grow(-1, -1);
@@ -102,7 +104,7 @@ void RecordCreateForm::submit(bool dryRun) {
         args.push_back("--force");
     }
 
-    CliClient::Result result = client_.runJson(args);
+    CliClient::Result result = client_.runJsonForCompany(args, company_);
 
     if (!result.ok) {
         std::string msg = result.errorMessage.empty() ? "Failed to create record" : result.errorMessage;

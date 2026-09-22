@@ -33,7 +33,8 @@ struct FieldSchema {
 // back to today's schema-less behavior.
 class EvidenceSchema {
 public:
-    static const std::vector<FieldSchema> &fetch(CliClient &client, const std::string &evidence);
+    static const std::vector<FieldSchema> &fetch(CliClient &client, const std::string &evidence,
+                                                  const std::string &company = {});
 
     static const FieldSchema *fieldByName(const std::vector<FieldSchema> &fields, const std::string &name);
     static std::vector<std::string> summaryNames(const std::vector<FieldSchema> &fields);

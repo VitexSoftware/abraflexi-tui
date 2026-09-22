@@ -95,6 +95,7 @@ void SessionStore::load() {
             continue;
         }
 
+        win.company = jsonString(item, "company");
         win.focusedId = jsonString(item, "focusedId");
         win.id = nextId_++;
 
@@ -135,7 +136,7 @@ bool SessionStore::save() const {
     nlohmann::json windows = nlohmann::json::array();
 
     for (const auto &win : windows_) {
-        nlohmann::json entry = {{"evidence", win.evidence}, {"focusedId", win.focusedId}};
+        nlohmann::json entry = {{"evidence", win.evidence}, {"company", win.company}, {"focusedId", win.focusedId}};
 
         if (win.hasBounds) {
             entry["bounds"] = {
@@ -177,10 +178,11 @@ bool SessionStore::save() const {
     return true;
 }
 
-int SessionStore::openWindow(const std::string &evidence, const std::string &focusedId, const WindowBounds *bounds) {
+int SessionStore::openWindow(const std::string &evidence, const std::string &company, const std::string &focusedId, const WindowBounds *bounds) {
     WindowSession win;
     win.id = nextId_++;
     win.evidence = evidence;
+    win.company = company;
     win.focusedId = focusedId;
 
     if (bounds != nullptr) {

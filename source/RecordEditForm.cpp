@@ -9,10 +9,12 @@
 
 namespace abraflexitui {
 
-RecordEditForm::RecordEditForm(CliClient &client, std::string evidence, std::string id)
+RecordEditForm::RecordEditForm(CliClient &client, std::string evidence, std::string id, std::string company)
     : TWindowInit(&TDialog::initFrame),
-      TDialog(TRect(3, 1, 77, 23), ("Edit " + evidence + " " + id).c_str()),
-      client_(client), evidence_(std::move(evidence)), id_(std::move(id)) {
+      TDialog(TRect(3, 1, 77, 23),
+              ("Edit " + evidence + " " + id + " [" + (company.empty() ? client.company() : company) + "]").c_str()),
+      client_(client), evidence_(std::move(evidence)), id_(std::move(id)),
+      company_(company.empty() ? client.company() : std::move(company)) {
     options |= ofCentered;
     makeMaximizable(*this);
 
@@ -22,9 +24,9 @@ RecordEditForm::RecordEditForm(CliClient &client, std::string evidence, std::str
     const short right = inner.b.x;
     short y = inner.a.y;
 
-    CliClient::Result current = client_.runJson({"record", evidence_, "show", id_});
+    CliClient::Result current = client_.runJsonForCompany({"record", evidence_, "show", id_}, company_);
     nlohmann::json initial = current.ok ? current.data : nlohmann::json{{"id", id_}};
-    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client_, evidence_);
+    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client_, evidence_, company_);
 
     std::string hintText = current.ok ? "Edit the fields, then Save. Dry-Run does not write."
                                        : ("Could not load record: " + current.errorMessage);
@@ -90,7 +92,7 @@ void RecordEditForm::submit(bool dryRun) {
         args.push_back("--dry-run");
     }
 
-    CliClient::Result result = client_.runJson(args);
+    CliClient::Result result = client_.runJsonForCompany(args, company_);
 
     if (!result.ok) {
         messageBox(result.errorMessage.empty() ? std::string("Failed to update record") : result.errorMessage,

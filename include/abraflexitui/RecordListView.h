@@ -49,7 +49,7 @@ class RecordListView : public TWindow {
 public:
     RecordListView(CliClient &client, SessionStore &session, std::string evidence,
                     std::string columns = "id,kod,nazev", int limit = 20, std::string initialFocusId = {},
-                    const WindowBounds *initialBounds = nullptr);
+                    const WindowBounds *initialBounds = nullptr, std::string company = {});
     ~RecordListView() override;
 
     void refresh();
@@ -59,6 +59,7 @@ public:
 
     CliClient &client() { return client_; }
     const std::string &evidence() const { return evidence_; }
+    const std::string &company() const { return company_; }
 
     void handleEvent(TEvent &event) override;
 
@@ -74,6 +75,7 @@ private:
     CliClient &client_;
     SessionStore &session_;
     std::string evidence_;
+    std::string company_;
     std::vector<FieldSchema> schema_;
     std::map<std::string, std::string> fieldTitles_;
     int sessionHandle_ = 0;

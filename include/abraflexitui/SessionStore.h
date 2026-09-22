@@ -21,6 +21,7 @@ struct WindowBounds {
 struct WindowSession {
     int id = 0;
     std::string evidence;
+    std::string company;
     std::string focusedId;
     WindowBounds bounds;
     bool hasBounds = false;
@@ -45,7 +46,7 @@ public:
 
     // Registers a newly opened window and returns an opaque handle
     // (WindowSession::id) to use with the update*/close calls below.
-    int openWindow(const std::string &evidence, const std::string &focusedId, const WindowBounds *bounds);
+    int openWindow(const std::string &evidence, const std::string &company, const std::string &focusedId, const WindowBounds *bounds);
     void updateFocused(int handle, const std::string &focusedId);
     void updateBounds(int handle, const WindowBounds &bounds);
     void closeWindow(int handle);

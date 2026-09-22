@@ -17,10 +17,12 @@ bool evidenceHasItems(const std::string &evidence);
 // without edit controls.
 class DocumentPreview : public TWindow {
 public:
-    DocumentPreview(CliClient &client, std::string evidence, std::string id, const nlohmann::json &record);
+    DocumentPreview(CliClient &client, std::string evidence, std::string id, const nlohmann::json &record,
+                    std::string company = {});
 
     const std::string &evidence() const { return evidence_; }
     const std::string &recordId() const { return id_; }
+    const std::string &company() const { return company_; }
 
     void changeBounds(const TRect &bounds) override;
     void handleEvent(TEvent &event) override;
@@ -35,6 +37,7 @@ private:
     CliClient &client_;
     std::string evidence_;
     std::string id_;
+    std::string company_;
     std::string filter_;
     std::string order_;
     std::string relation_;

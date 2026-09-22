@@ -188,7 +188,7 @@ void AbraFlexiApp::restoreSessionWindows() {
     for (const WindowSession &win : saved) {
         const WindowBounds *bounds = win.hasBounds ? &win.bounds : nullptr;
         TProgram::deskTop->insert(
-            new RecordListView(client_, session_, win.evidence, "id,kod,nazev", 20, win.focusedId, bounds));
+            new RecordListView(client_, session_, win.evidence, "id,kod,nazev", 20, win.focusedId, bounds, win.company));
     }
 }
 

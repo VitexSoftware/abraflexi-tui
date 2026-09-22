@@ -10,7 +10,10 @@ namespace abraflexitui {
 // Flexplorer evidence Info tab: columns, relations and labels.
 class EvidenceInfoView : public TWindow {
 public:
-    EvidenceInfoView(CliClient &client, std::string evidence);
+    EvidenceInfoView(CliClient &client, std::string evidence, std::string company = {});
+
+private:
+    std::string company_;
 };
 
 } // namespace abraflexitui
