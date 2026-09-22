@@ -31,14 +31,17 @@ public:
 // address-book rows can stay open and be tiled next to each other.
 class RecordWindow : public TWindow {
 public:
-    RecordWindow(CliClient &client, const std::string &evidence, const std::string &id, const nlohmann::json &record);
+    RecordWindow(CliClient &client, const std::string &evidence, const std::string &id, const nlohmann::json &record,
+                 std::string company = {});
 
     const std::string &evidence() const { return evidence_; }
     const std::string &recordId() const { return id_; }
+    const std::string &company() const { return company_; }
 
 private:
     std::string evidence_;
     std::string id_;
+    std::string company_;
 };
 
 } // namespace abraflexitui

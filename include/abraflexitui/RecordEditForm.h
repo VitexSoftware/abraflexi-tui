@@ -13,7 +13,7 @@ namespace abraflexitui {
 // Loads `record show` and saves with `record update` (AbraFlexi PUT).
 class RecordEditForm : public TDialog {
 public:
-    RecordEditForm(CliClient &client, std::string evidence, std::string id);
+    RecordEditForm(CliClient &client, std::string evidence, std::string id, std::string company = {});
 
     void handleEvent(TEvent &event) override;
 
@@ -23,6 +23,7 @@ private:
     CliClient &client_;
     std::string evidence_;
     std::string id_;
+    std::string company_;
     RecordFieldForm *form_ = nullptr;
 };
 

@@ -203,10 +203,14 @@ public:
     }
 };
 
-DocumentPreview::DocumentPreview(CliClient &client, std::string evidence, std::string id, const nlohmann::json &record)
+DocumentPreview::DocumentPreview(CliClient &client, std::string evidence, std::string id, const nlohmann::json &record,
+                                 std::string company)
     : TWindowInit(&TWindow::initFrame),
-      TWindow(sideBySideRect(), (evidence + " " + jsonField(record, "kod")).c_str(), wnNoNumber),
-      client_(client), evidence_(std::move(evidence)), id_(std::move(id)) {
+      TWindow(sideBySideRect(),
+              (evidence + " " + jsonField(record, "kod") + " [" + (company.empty() ? client.company() : company) + "]").c_str(),
+              wnNoNumber),
+      client_(client), evidence_(std::move(evidence)), id_(std::move(id)),
+      company_(company.empty() ? client.company() : std::move(company)) {
     options |= ofTileable;
     growMode = gfGrowHiX | gfGrowHiY;
 
@@ -322,7 +326,7 @@ void DocumentPreview::reloadItems() {
         path += "&filter=" + urlEncode(filter_);
     }
 
-    CliClient::Result result = client_.runJson({"query", path, "--method=GET"});
+    CliClient::Result result = client_.runJsonForCompany({"query", path, "--method=GET"}, company_);
     std::vector<std::string> rows;
     std::string header;
 

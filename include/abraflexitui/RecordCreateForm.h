@@ -15,7 +15,7 @@ namespace abraflexitui {
 // (missingFieldsFormatted on a failed create), which "Force" skips.
 class RecordCreateForm : public TDialog {
 public:
-    RecordCreateForm(CliClient &client, std::string evidence);
+    RecordCreateForm(CliClient &client, std::string evidence, std::string company = {});
 
     void handleEvent(TEvent &event) override;
 
@@ -24,6 +24,7 @@ private:
 
     CliClient &client_;
     std::string evidence_;
+    std::string company_;
     RecordFieldForm *form_ = nullptr;
     TCheckBoxes *forceBox_;
 };

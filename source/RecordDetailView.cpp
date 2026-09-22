@@ -164,14 +164,16 @@ std::string recordTitle(const std::string &evidence, const std::string &id, cons
 } // namespace
 
 RecordWindow::RecordWindow(CliClient &client, const std::string &evidence, const std::string &id,
-                            const nlohmann::json &record)
+                            const nlohmann::json &record, std::string company)
     : TWindowInit(&TWindow::initFrame),
-      TWindow(cascadedRecordRect(), recordTitle(evidence, id, record), wnNoNumber),
-      evidence_(evidence), id_(id) {
+      TWindow(cascadedRecordRect(),
+              (recordTitle(evidence, id, record) + " [" + (company.empty() ? client.company() : company) + "]").c_str(),
+              wnNoNumber),
+      evidence_(evidence), id_(id), company_(company.empty() ? client.company() : std::move(company)) {
     options |= ofTileable;
     growMode = gfGrowHiX | gfGrowHiY;
 
-    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client, evidence_);
+    const std::vector<FieldSchema> &schema = EvidenceSchema::fetch(client, evidence_, company_);
     TScrollBar *bar = standardScrollBar(sbVertical | sbHandleKeyboard);
     RecordDetailView *detail = new RecordDetailView(getExtent().grow(-1, -1), bar);
     growFill(detail);
