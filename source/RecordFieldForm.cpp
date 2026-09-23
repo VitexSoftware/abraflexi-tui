@@ -3,6 +3,8 @@
 #include "abraflexitui/RecordFieldForm.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/CodeFormat.h"
+#include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/RelationPickerDialog.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <algorithm>
@@ -13,6 +15,7 @@ namespace abraflexitui {
 namespace {
 
 constexpr short kLabelWidth = 24;
+constexpr short kPickButtonWidth = 4;
 constexpr int kDefaultMaxLen = 120;
 constexpr int kMaxLenCap = 250;
 constexpr uint kRawBufSize = 32767;
@@ -31,8 +34,10 @@ std::string fieldLabel(const FieldSchema &field) {
 
     if (field.type == "relation" && !field.relationEvidence.empty()) {
         label += " (\xE2\x86\x92 " + field.relationEvidence + ")";
-    } else if (field.type == "date" || field.type == "datetime") {
+    } else if (field.type == "date") {
         label += " (YYYY-MM-DD)";
+    } else if (field.type == "datetime") {
+        label += " (YYYY-MM-DD HH:MM:SS)";
     }
 
     return label;
@@ -57,19 +62,12 @@ bool jsonValueIsTrue(const nlohmann::json &value) {
     return (value.is_boolean() && value.get<bool>()) || value == "true";
 }
 
-std::string jsonValueAsText(const nlohmann::json &value) {
-    if (value.is_null()) {
-        return std::string();
-    }
-
-    return value.is_string() ? value.get<std::string>() : value.dump();
-}
-
 } // namespace
 
-RecordFieldForm::RecordFieldForm(const TRect &bounds, std::vector<FieldSchema> schema,
-                                  nlohmann::json initialValues) noexcept
-    : TGroup(bounds), fields_(orderedWritableFields(schema)), model_(std::move(initialValues)) {
+RecordFieldForm::RecordFieldForm(const TRect &bounds, CliClient &client, std::string company,
+                                  std::vector<FieldSchema> schema, nlohmann::json initialValues) noexcept
+    : TGroup(bounds), client_(client), company_(std::move(company)), fields_(orderedWritableFields(schema)),
+      model_(std::move(initialValues)) {
     if (!model_.is_object()) {
         model_ = nlohmann::json::object();
     }
@@ -102,9 +100,7 @@ RecordFieldForm::RecordFieldForm(const TRect &bounds, std::vector<FieldSchema> s
     stickRight(rawToggleBtn_);
     insert(rawToggleBtn_);
 
-    fieldsArea_ = TRect(x, static_cast<short>(top + 2), right, inner.b.y);
-    rowsPerPage_ = std::max<int>(1, fieldsArea_.b.y - fieldsArea_.a.y);
-    pageCount_ = fields_.empty() ? 1 : static_cast<int>((fields_.size() + rowsPerPage_ - 1) / rowsPerPage_);
+    recomputeGeometry();
 
     if (fields_.empty()) {
         // No schema available (CLI/lookup failure or an undocumented
@@ -119,6 +115,80 @@ RecordFieldForm::RecordFieldForm(const TRect &bounds, std::vector<FieldSchema> s
         rawMode_ = true;
     } else {
         showPage(0);
+    }
+}
+
+void RecordFieldForm::recomputeGeometry() {
+    TRect inner = getExtent();
+    const short top = static_cast<short>(inner.a.y + 2);
+    fieldsArea_ = TRect(inner.a.x, top, inner.b.x, inner.b.y);
+    rowsPerPage_ = std::max<int>(1, fieldsArea_.b.y - fieldsArea_.a.y);
+    pageCount_ = fields_.empty() ? 1 : static_cast<int>((fields_.size() + rowsPerPage_ - 1) / rowsPerPage_);
+    page_ = std::max(0, std::min(page_, pageCount_ - 1));
+}
+
+void RecordFieldForm::changeBounds(const TRect &bounds) {
+    TGroup::changeBounds(bounds);
+    recomputeGeometry();
+
+    if (rawMode_) {
+        // The raw editor/scrollbar are plain TViews with no growMode set
+        // for this - they were placed once against the old fieldsArea_ in
+        // buildRawEditor() and need an explicit reposition here instead.
+        if (rawEditor_ != nullptr) {
+            rawEditor_->locate(fieldsArea_);
+        }
+
+        if (rawScrollBar_ != nullptr) {
+            TRect scrollRect(static_cast<short>(fieldsArea_.b.x - 1), fieldsArea_.a.y, fieldsArea_.b.x, fieldsArea_.b.y);
+            rawScrollBar_->locate(scrollRect);
+        }
+    } else {
+        // Widen the *currently visible* rows in place instead of tearing
+        // them down and rebuilding via showPage(): this changeBounds() call
+        // itself runs from inside the owner's own resize cascade (the
+        // dialog's TGroup::changeBounds() -> forEach(doCalcChange) loop), so
+        // reaching back into our own subview list with remove()/insert()
+        // here caused reentrant churn - lost focus, ghosted old field text
+        // left on screen, and a dead relation-picker button (all reported
+        // after this override was first added). The ask was for fields to
+        // get wider on a wider window, not to re-paginate, so this avoids
+        // rebuilding anything - Prev/Next still re-paginates properly using
+        // the freshly recomputed rowsPerPage_/pageCount_ above.
+        reflowCurrentPage();
+        updatePageLabel();
+    }
+}
+
+void RecordFieldForm::reflowCurrentPage() {
+    const short inputX = std::min<short>(static_cast<short>(fieldsArea_.a.x + kLabelWidth),
+                                         static_cast<short>(fieldsArea_.b.x - 1));
+
+    for (auto &row : pageRows_) {
+        TRect labelRect = row.label->getBounds();
+        labelRect.b.x = inputX;
+        row.label->locate(labelRect);
+
+        if (row.pickButton != nullptr) {
+            const short pickX = std::max<short>(inputX, static_cast<short>(fieldsArea_.b.x - kPickButtonWidth));
+
+            TRect textRect = row.widget->getBounds();
+            textRect.a.x = inputX;
+            textRect.b.x = pickX;
+            row.widget->locate(textRect);
+
+            TRect btnRect = row.pickButton->getBounds();
+            btnRect.a.x = pickX;
+            btnRect.b.x = fieldsArea_.b.x;
+            row.pickButton->locate(btnRect);
+        } else if (row.field->type != "logic") {
+            // Leave the checkbox at its original narrow width - only text
+            // inputs and relation displays benefit from the extra width.
+            TRect widgetRect = row.widget->getBounds();
+            widgetRect.a.x = inputX;
+            widgetRect.b.x = fieldsArea_.b.x;
+            row.widget->locate(widgetRect);
+        }
     }
 }
 
@@ -139,6 +209,7 @@ void RecordFieldForm::showPage(int page) {
         insert(label);
 
         TView *widget = nullptr;
+        TButton *pickButton = nullptr;
         std::string originalText;
         bool originalChecked = false;
 
@@ -153,25 +224,64 @@ void RecordFieldForm::showPage(int page) {
                 box->press(0);
             }
 
+            insert(box);
             widget = box;
+        } else if (field.type == "relation" && !field.relationEvidence.empty()) {
+            const short pickX = static_cast<short>(std::max<short>(inputX, fieldsArea_.b.x - kPickButtonWidth));
+
+            std::string display;
+
+            if (model_.contains(field.name)) {
+                display = jsonDisplay(model_.at(field.name), &field);
+            }
+
+            originalText = display;
+            auto *text = new TStaticText(TRect(inputX, y, pickX, static_cast<short>(y + 1)), display.c_str());
+            insert(text);
+            widget = text;
+
+            pickButton = new AppButton(TRect(pickX, y, fieldsArea_.b.x, static_cast<short>(y + 1)), "...",
+                                        cmFieldFormPickRelation, bfNormal);
+            insert(pickButton);
         } else {
             const int maxLen = field.maxLength > 0 ? std::min(field.maxLength, kMaxLenCap) : kDefaultMaxLen;
             auto *input = new TInputLine(TRect(inputX, y, fieldsArea_.b.x, static_cast<short>(y + 1)), maxLen);
 
             if (model_.contains(field.name)) {
-                originalText = jsonValueAsText(model_.at(field.name));
+                originalText = jsonDisplay(model_.at(field.name), &field);
                 setInputText(input, originalText);
             }
 
+            insert(input);
             widget = input;
         }
 
-        insert(widget);
-        pageRows_.push_back({&field, label, widget, originalText, originalChecked});
+        FieldRow row;
+        row.field = &field;
+        row.label = label;
+        row.widget = widget;
+        row.pickButton = pickButton;
+        row.originalText = originalText;
+        row.originalChecked = originalChecked;
+        pageRows_.push_back(std::move(row));
         y = static_cast<short>(y + 1);
     }
 
     updatePageLabel();
+
+    // Put keyboard focus on the first focusable control of the freshly
+    // built page (the pick button for a relation row, since its TStaticText
+    // display isn't selectable) so the page is immediately editable -
+    // clearPageViews()'s resetCurrent() above only guarantees `current`
+    // isn't dangling, not that it lands inside the page itself.
+    for (auto &row : pageRows_) {
+        TView *focusable = row.pickButton != nullptr ? static_cast<TView *>(row.pickButton) : row.widget;
+
+        if ((focusable->options & ofSelectable) != 0) {
+            focusable->select();
+            break;
+        }
+    }
 }
 
 void RecordFieldForm::clearPageViews() {
@@ -180,9 +290,22 @@ void RecordFieldForm::clearPageViews() {
         delete row.label;
         remove(row.widget);
         delete row.widget;
+
+        if (row.pickButton != nullptr) {
+            remove(row.pickButton);
+            delete row.pickButton;
+        }
     }
 
     pageRows_.clear();
+
+    // TGroup::remove()/removeView() don't clear `current` - if the deleted
+    // row happened to hold keyboard focus, `current` is left dangling
+    // (use-after-free) and the whole form silently stops responding to
+    // input until something else re-focuses it. Re-anchor it to whatever
+    // selectable sibling remains (e.g. the Prev/Next/Raw buttons); showPage()
+    // moves it onto the freshly built page below.
+    resetCurrent();
 }
 
 void RecordFieldForm::flushPageIntoModel() {
@@ -192,6 +315,14 @@ void RecordFieldForm::flushPageIntoModel() {
 
             if (checked != row.originalChecked) {
                 model_[row.field->name] = checked;
+            }
+        } else if (row.pickButton != nullptr) {
+            // Relation row: the display TStaticText is read-only, so the
+            // only way to change the value is through the picker. Leave
+            // the model's existing relation object untouched unless the
+            // user actually picked a new one this page-visit.
+            if (row.hasPickedValue) {
+                model_[row.field->name] = row.pickedValue;
             }
         } else {
             std::string text = inputText(static_cast<TInputLine *>(row.widget));
@@ -230,6 +361,7 @@ void RecordFieldForm::buildRawEditor(const std::string &initialText) {
     rawEditor_ = new TMemo(fieldsArea_, nullptr, rawScrollBar_, nullptr, kRawBufSize);
     insert(rawEditor_);
     rawEditor_->insertText(initialText.c_str(), static_cast<uint>(initialText.size()), False);
+    rawEditor_->select();
 }
 
 void RecordFieldForm::destroyRawEditor() {
@@ -339,6 +471,28 @@ std::vector<std::string> RecordFieldForm::missingMandatory() {
     return missing;
 }
 
+void RecordFieldForm::openRelationPicker(FieldRow &row) {
+    auto *dlg = new RelationPickerDialog(client_, row.field->relationEvidence, company_);
+    const ushort code = TProgram::deskTop->execView(dlg);
+
+    if (code == cmOK) {
+        row.pickedValue = dlg->selectedValue();
+        row.hasPickedValue = true;
+
+        const std::string display = jsonShowAs(row.pickedValue);
+        auto *text = static_cast<TStaticText *>(row.widget);
+        TRect bounds = text->getBounds();
+        remove(text);
+        delete text;
+        auto *newText = new TStaticText(bounds, display.c_str());
+        insert(newText);
+        row.widget = newText;
+        row.originalText = display;
+    }
+
+    TObject::destroy(dlg);
+}
+
 void RecordFieldForm::draw() {
     // Plain TGroup subclasses don't set ofBuffered and so never clear their
     // own area - TGroup::draw() only draws subviews (buttons, labels,
@@ -377,6 +531,17 @@ void RecordFieldForm::handleEvent(TEvent &event) {
 
     case cmFieldFormToggleRaw:
         toggleRaw();
+        clearEvent(event);
+        break;
+
+    case cmFieldFormPickRelation:
+        for (auto &row : pageRows_) {
+            if (row.pickButton == static_cast<TButton *>(event.message.infoPtr)) {
+                openRelationPicker(row);
+                break;
+            }
+        }
+
         clearEvent(event);
         break;
 

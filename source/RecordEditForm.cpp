@@ -37,19 +37,19 @@ RecordEditForm::RecordEditForm(CliClient &client, std::string evidence, std::str
     y += 1;
 
     const short formBottom = static_cast<short>(inner.b.y - 3);
-    form_ = new RecordFieldForm(TRect(x, y, right, formBottom), schema, initial);
+    form_ = new RecordFieldForm(TRect(x, y, right, formBottom), client_, company_, schema, initial);
     growFill(form_);
     insert(form_);
 
-    TView *dryRun = new AppButton(TRect(right - 30, formBottom + 1, right - 18, formBottom + 3), "Dry-~R~un",
+    TView *dryRun = new AppButton(TRect(right - 35, formBottom + 1, right - 23, formBottom + 3), "Dry-~R~un",
                                 cmRecordCreateDryRun, bfNormal);
     stickCorner(dryRun);
     insert(dryRun);
-    TView *save = new AppButton(TRect(right - 17, formBottom + 1, right - 8, formBottom + 3), "~S~ave",
+    TView *save = new AppButton(TRect(right - 22, formBottom + 1, right - 13, formBottom + 3), "~S~ave",
                               cmRecordCreateSubmit, bfDefault);
     stickCorner(save);
     insert(save);
-    TView *cancel = new AppButton(TRect(right - 7, formBottom + 1, right, formBottom + 3), "Cancel", cmCancel, bfNormal);
+    TView *cancel = new AppButton(TRect(right - 12, formBottom + 1, right - 5, formBottom + 3), "Cancel", cmCancel, bfNormal);
     stickCorner(cancel);
     insert(cancel);
 

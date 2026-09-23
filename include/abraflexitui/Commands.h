@@ -70,4 +70,7 @@ constexpr unsigned short cmOpenStredisko = 1068;
 constexpr unsigned short cmOpenZakazka = 1069;
 constexpr unsigned short cmOpenSaldo = 1070;
 
+constexpr unsigned short cmFieldFormPickRelation = 1071; // browse-button on a relation field row
+constexpr unsigned short cmRelationPickerSelect = 1072;  // "Select" button inside RelationPickerDialog
+
 } // namespace abraflexitui

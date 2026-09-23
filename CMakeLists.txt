@@ -55,6 +55,7 @@ add_executable(abraflexi-tui
     source/DocumentPreview.cpp
     source/PrinterUtil.cpp
     source/PrintDialog.cpp
+    source/RelationPickerDialog.cpp
     vendor/qrcodegen/qrcodegen.cpp
 )
 

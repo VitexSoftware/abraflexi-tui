@@ -1,6 +1,7 @@
 #pragma once
 
 #include "abraflexitui/TV.h"
+#include "abraflexitui/CliClient.h"
 #include "abraflexitui/EvidenceSchema.h"
 
 #include <nlohmann/json.hpp>
@@ -24,7 +25,8 @@ namespace abraflexitui {
 // then behaves exactly like the old plain-JSON dialog.
 class RecordFieldForm : public TGroup {
 public:
-    RecordFieldForm(const TRect &bounds, std::vector<FieldSchema> schema, nlohmann::json initialValues) noexcept;
+    RecordFieldForm(const TRect &bounds, CliClient &client, std::string company, std::vector<FieldSchema> schema,
+                    nlohmann::json initialValues) noexcept;
 
     // Flushes whichever mode (fields or raw JSON) is currently active into
     // the accumulated value model and returns it - what submit() sends.
@@ -37,6 +39,7 @@ public:
 
     void handleEvent(TEvent &event) override;
     void draw() override;
+    void changeBounds(const TRect &bounds) override;
 
 private:
     void showPage(int page);
@@ -47,7 +50,14 @@ private:
     void buildRawEditor(const std::string &initialText);
     void destroyRawEditor();
     std::string readRawText() const;
+    void recomputeGeometry();
+    void reflowCurrentPage();
 
+    struct FieldRow;
+    void openRelationPicker(FieldRow &row);
+
+    CliClient &client_;
+    std::string company_;
     std::vector<FieldSchema> fields_;
     nlohmann::json model_;
     TRect fieldsArea_;
@@ -60,6 +70,9 @@ private:
         const FieldSchema *field;
         TStaticText *label;
         TView *widget;
+        // Present only for a relation-type row: the browse button that
+        // opens a RelationPickerDialog for it.
+        TButton *pickButton = nullptr;
         // What the widget was seeded with, to detect an actual edit. A
         // relation/nested field's original value can be a whole JSON
         // object; it is stringified into the text input for display, but
@@ -69,6 +82,11 @@ private:
         // stand-in).
         std::string originalText;
         bool originalChecked = false;
+        // Set when the user picked a new value for a relation row via
+        // RelationPickerDialog this page-visit; flushPageIntoModel() writes
+        // it into the model instead of the (read-only) display text.
+        nlohmann::json pickedValue;
+        bool hasPickedValue = false;
     };
     std::vector<FieldRow> pageRows_;
 
