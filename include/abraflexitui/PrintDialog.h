@@ -24,6 +24,7 @@ public:
     PrintDialog(CliClient &client, std::string evidence, std::string recordId, std::string company = {});
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void loadReportsAndAttachments();

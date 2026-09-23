@@ -1,5 +1,6 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/SimpleListViewer.h"
+#include "abraflexitui/WindowColors.h"
 
 #include <cstring>
 
@@ -50,6 +51,34 @@ void SimpleListViewer::draw() {
             b.moveStr(1, text, color, static_cast<ushort>(size.x > 1 ? size.x - 1 : 0));
             writeLine(0, line, size.x, 1, b);
         }
+    }
+}
+
+// Same "don't trust the resolved palette color under an arbitrary terminal
+// theme" reasoning as AppButton/StatusView: TListViewer's stock palette (see
+// cpListViewer in views.h) resolves through the owning window's and
+// application's palette chain, which this app never customizes, so under a
+// terminal ANSI theme that recolors most indices red/orange the whole grid
+// background turns light red (reported: entire record list unreadable).
+// Overriding mapColor() here bypasses that chain for every SimpleListViewer
+// (record grids, evidence/company lists, structure lists) with fixed RGB
+// colors, so they render the same regardless of the terminal's color scheme.
+TColorAttr SimpleListViewer::mapColor(uchar index) {
+    static const uint32_t fg = 0xF0F0F0;
+    static const uint32_t bg = kFieldBg;         // lighter "this is a data area" tone, matches InputLine.
+    static const uint32_t selectedBg = 0x264F78; // accent blue.
+
+    switch (index) {
+    case 1: // Active
+    case 2: // Inactive
+    case 3: // Focused
+        return TColorAttr(TColor(TColorRGB(fg)), TColor(TColorRGB(bg)));
+    case 4: // Selected
+        return TColorAttr(TColor(TColorRGB(fg)), TColor(TColorRGB(selectedBg)));
+    case 5: // Divider
+        return TColorAttr(TColor(TColorRGB(0x6B7C93)), TColor(TColorRGB(bg)));
+    default:
+        return TListViewer::mapColor(index);
     }
 }
 

@@ -1,6 +1,7 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/RecordDetailView.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <algorithm>
@@ -179,6 +180,11 @@ RecordWindow::RecordWindow(CliClient &client, const std::string &evidence, const
     growFill(detail);
     detail->showRecord(record, &schema);
     insert(detail);
+}
+
+TColorAttr RecordWindow::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TWindow::mapColor(index);
 }
 
 } // namespace abraflexitui

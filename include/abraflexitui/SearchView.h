@@ -16,6 +16,7 @@ public:
     SearchView(CliClient &client, SessionStore &session);
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void runSearch();

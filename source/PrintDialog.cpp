@@ -2,6 +2,7 @@
 #include "abraflexitui/AppButton.h"
 #include "abraflexitui/PrinterUtil.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -309,6 +310,11 @@ void PrintDialog::handleEvent(TEvent &event) {
         doPrint();
         clearEvent(event);
     }
+}
+
+TColorAttr PrintDialog::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

@@ -26,6 +26,7 @@ public:
 
     void changeBounds(const TRect &bounds) override;
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void placeItems();

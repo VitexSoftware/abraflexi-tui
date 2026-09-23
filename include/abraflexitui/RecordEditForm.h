@@ -16,6 +16,7 @@ public:
     RecordEditForm(CliClient &client, std::string evidence, std::string id, std::string company = {});
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void submit(bool dryRun);

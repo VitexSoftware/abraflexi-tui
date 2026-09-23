@@ -1,6 +1,7 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/CompanyListView.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <vector>
@@ -88,6 +89,11 @@ void CompanyListView::chooseFocused() {
     }
 
     onChosen_(dbNames_[static_cast<std::size_t>(index)]);
+}
+
+TColorAttr CompanyListView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TWindow::mapColor(index);
 }
 
 } // namespace abraflexitui

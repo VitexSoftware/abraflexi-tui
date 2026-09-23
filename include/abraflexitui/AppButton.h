@@ -4,20 +4,18 @@
 
 namespace abraflexitui {
 
-// A drop-in TButton replacement with fixed truecolor RGB colors instead of
-// the classic 16-color BIOS palette entries. TButton::draw() resolves its
+// A drop-in TButton replacement with fixed truecolor RGB instead of the
+// classic 16-color BIOS palette entries. TButton::draw() resolves its
 // colors through mapColor(1..8) (normal/default/selected/disabled/shortcut
 // x3/shadow, see tvision's cpButton), which walks up the owning dialog's
-// and application's palette chain - a chain this app never customizes, so
-// it renders with tvision's stock colors (green background, by default).
-// Terminals with a heavily customized 16-color ANSI theme can remap that
-// stock green into something that clashes with the rest of the UI (e.g.
-// a theme that recolors most of the app red/orange but leaves green as a
-// pale, near-white tone). Overriding mapColor() here bypasses the whole
-// palette/ANSI-16 chain for buttons specifically and returns explicit RGB
-// colors, so buttons look the same regardless of the terminal's color
-// scheme - the same "don't depend on what a specific palette index
-// happens to render as" approach used for the list focus highlight.
+// and application's palette chain. Removing this override was tried
+// (letting stock TButton colors resolve through tvision's own canonical
+// RGB tables) on the theory that a truecolor-capable terminal
+// (COLORTERM=truecolor/24bit) would no longer need it - but tvision's own
+// stock "Button normal" color for this app's blue window palette IS a
+// bright red regardless of truecolor, reproducing the exact red-button
+// problem this class exists to avoid. So the override stays; see
+// WindowColors.h for the matching dialog-background color `faceBg` uses.
 class AppButton : public TButton {
 public:
     using TButton::TButton;

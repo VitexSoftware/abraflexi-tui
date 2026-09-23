@@ -30,6 +30,7 @@ add_executable(abraflexi-tui
     source/ProfileStore.cpp
     source/SessionStore.cpp
     source/SimpleListViewer.cpp
+    source/WindowColors.cpp
     source/AppShell.cpp
     source/AppStatusLine.cpp
     source/AppButton.cpp

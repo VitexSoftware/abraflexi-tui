@@ -45,4 +45,29 @@ constexpr unsigned short cmRecordPrint = 1047;
 constexpr unsigned short cmMinimizeAll = 200;
 constexpr unsigned short cmRestoreWindows = 201;
 
+// Module-menu quick-open shortcuts: each opens a RecordListView pinned to a
+// specific evidence and default column list (see AppShell.cpp's quickOpens
+// table). Numbered from 1050 to stay clear of the ranges above.
+constexpr unsigned short cmOpenAdresy = 1050;
+constexpr unsigned short cmOpenKontakty = 1051;
+constexpr unsigned short cmOpenFakturaVydana = 1052;
+constexpr unsigned short cmOpenObjednavkaPrijata = 1053;
+constexpr unsigned short cmOpenPohledavka = 1054;
+constexpr unsigned short cmOpenFakturaPrijata = 1055;
+constexpr unsigned short cmOpenObjednavkaVydana = 1056;
+constexpr unsigned short cmOpenZavazek = 1057;
+constexpr unsigned short cmOpenCenik = 1058;
+constexpr unsigned short cmOpenSkladovaKarta = 1059;
+constexpr unsigned short cmOpenSklad = 1060;
+constexpr unsigned short cmOpenSkladovyPohyb = 1061;
+constexpr unsigned short cmOpenBanka = 1062;
+constexpr unsigned short cmOpenBankovniUcet = 1063;
+constexpr unsigned short cmOpenPokladna = 1064;
+constexpr unsigned short cmOpenPokladniPohyb = 1065;
+constexpr unsigned short cmOpenUcetniDenik = 1066;
+constexpr unsigned short cmOpenUcet = 1067;
+constexpr unsigned short cmOpenStredisko = 1068;
+constexpr unsigned short cmOpenZakazka = 1069;
+constexpr unsigned short cmOpenSaldo = 1070;
+
 } // namespace abraflexitui

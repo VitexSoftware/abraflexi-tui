@@ -47,9 +47,14 @@ private:
 // there is no per-evidence subclass.
 class RecordListView : public TWindow {
 public:
+    // `preferExplicitColumns`: when true, `columns` is kept as given even if
+    // the evidence's schema marks its own set of fields "inSummary" - used by
+    // menu shortcuts that want a specific, evidence-appropriate column list
+    // instead of whatever the schema would otherwise substitute.
     RecordListView(CliClient &client, SessionStore &session, std::string evidence,
                     std::string columns = "id,kod,nazev", int limit = 20, std::string initialFocusId = {},
-                    const WindowBounds *initialBounds = nullptr, std::string company = {});
+                    const WindowBounds *initialBounds = nullptr, std::string company = {},
+                    bool preferExplicitColumns = false);
     ~RecordListView() override;
 
     void refresh();
@@ -61,10 +66,16 @@ public:
     const std::string &evidence() const { return evidence_; }
     const std::string &company() const { return company_; }
 
+    // Used by EvidenceInfoView (opened via the "Info" button) so it can show
+    // which of the evidence's fields are currently listed in the Columns
+    // input, and add/remove a field there when the user toggles it.
+    std::vector<std::string> currentColumns() const;
+    void toggleColumn(const std::string &field);
+
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
-    std::vector<std::string> currentColumns() const;
     void editSelected();
     void deleteSelected();
     void showFields();

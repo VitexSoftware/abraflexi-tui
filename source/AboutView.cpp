@@ -2,6 +2,7 @@
 #include "abraflexitui/AppButton.h"
 #include "abraflexitui/AboutView.h"
 #include "abraflexitui/CliClient.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <string>
@@ -93,6 +94,11 @@ void AboutView::handleEvent(TEvent &event) {
         openSelected();
         clearEvent(event);
     }
+}
+
+TColorAttr AboutView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

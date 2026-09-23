@@ -1,5 +1,6 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/QrCodeView.h"
+#include "abraflexitui/WindowColors.h"
 
 #include "qrcodegen.hpp"
 
@@ -125,6 +126,11 @@ QrCodeDialog::QrCodeDialog(const std::string &url)
     insert(new QrCodeView(TRect(1, 1, static_cast<short>(1 + side), static_cast<short>(1 + rows)), std::move(lines)));
     insert(new TStaticText(TRect(1, static_cast<short>(1 + rows), static_cast<short>(width - 1), static_cast<short>(2 + rows)),
                            fitCaption(url, side).c_str()));
+}
+
+TColorAttr QrCodeDialog::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

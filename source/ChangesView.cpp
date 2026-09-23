@@ -3,6 +3,7 @@
 #include "abraflexitui/ChangesView.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <cstring>
@@ -205,6 +206,11 @@ void ChangesView::handleEvent(TEvent &event) {
     default:
         break;
     }
+}
+
+TColorAttr ChangesView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

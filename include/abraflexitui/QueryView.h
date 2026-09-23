@@ -16,6 +16,7 @@ public:
     QueryView(CliClient &client, ProfileStore &store, std::function<void()> onFormatChanged);
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void send();

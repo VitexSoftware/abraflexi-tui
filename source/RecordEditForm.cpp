@@ -3,6 +3,7 @@
 #include "abraflexitui/RecordEditForm.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/EvidenceSchema.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <vector>
@@ -121,6 +122,11 @@ void RecordEditForm::handleEvent(TEvent &event) {
         submit(false);
         clearEvent(event);
     }
+}
+
+TColorAttr RecordEditForm::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

@@ -5,6 +5,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/SimpleListViewer.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <cctype>
@@ -446,6 +447,11 @@ void DocumentPreview::handleEvent(TEvent &event) {
         reloadItems();
         clearEvent(event);
     }
+}
+
+TColorAttr DocumentPreview::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TWindow::mapColor(index);
 }
 
 } // namespace abraflexitui

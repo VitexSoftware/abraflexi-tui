@@ -4,6 +4,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/StatusView.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <cstring>
@@ -466,6 +467,11 @@ void ServerConfigView::handleEvent(TEvent &event) {
     default:
         break;
     }
+}
+
+TColorAttr ServerConfigView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

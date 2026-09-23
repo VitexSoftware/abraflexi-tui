@@ -4,6 +4,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/RecordListView.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <cstring>
@@ -184,6 +185,11 @@ void SearchView::handleEvent(TEvent &event) {
         openCurrent();
         clearEvent(event);
     }
+}
+
+TColorAttr SearchView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

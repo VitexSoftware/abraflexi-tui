@@ -21,6 +21,7 @@ public:
 
     void getText(char *dest, short item, short maxLen) override;
     void draw() override;
+    TColorAttr mapColor(uchar index) override;
 
 protected:
     std::vector<std::string> rows_;

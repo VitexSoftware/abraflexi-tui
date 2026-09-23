@@ -196,15 +196,43 @@ TMenuBar *AbraFlexiApp::initMenuBar(TRect r) {
     r.b.y = r.a.y + 1;
 
     return new TMenuBar(
-        r, *new TSubMenu("~A~braFlexi", kbAltA) + *new TMenuItem("~S~tatus...", cmShowStatus, kbAltS) +
+        r, *new TSubMenu("F~i~rma", kbAltI) + *new TMenuItem("~S~tatus...", cmShowStatus, kbAltS) +
                *new TMenuItem("~C~ompanies...", cmShowCompanies, kbAltC) +
-               *new TMenuItem("~E~vidences...", cmShowEvidences, kbAltE) +
-               *new TMenuItem("Ser~v~ers...", cmShowServerConfig, kbAltV) +
-               *new TMenuItem("~Q~uery...", cmShowQuery, kbAltQ) +
-               *new TMenuItem("~F~ind...", cmShowSearch, kbAltF) +
-               *new TMenuItem("Chan~g~es...", cmShowChanges, kbAltG) +
-               *new TMenuItem("~B~rowser QR...", cmShowWebQr, kbAltB, hcNoContext, "Alt-B") + newLine() +
+               *new TMenuItem("Ser~v~ers...", cmShowServerConfig, kbAltV) + newLine() +
                *new TMenuItem("E~x~it", cmQuit, cmQuit, hcNoContext, "Alt-X") +
+           *new TSubMenu("~A~dresář", kbAltA) +
+               *new TMenuItem("~A~dresy", cmOpenAdresy, kbNoKey) +
+               *new TMenuItem("~K~ontakty", cmOpenKontakty, kbNoKey) +
+           *new TSubMenu("P~r~odej", kbAltR) +
+               *new TMenuItem("~V~ydané faktury", cmOpenFakturaVydana, kbNoKey) +
+               *new TMenuItem("Přijaté ~o~bjednávky", cmOpenObjednavkaPrijata, kbNoKey) +
+               *new TMenuItem("Ostatní ~p~ohledávky", cmOpenPohledavka, kbNoKey) +
+           *new TSubMenu("Ná~k~up", kbAltK) +
+               *new TMenuItem("Při~j~até faktury", cmOpenFakturaPrijata, kbNoKey) +
+               *new TMenuItem("~V~ydané objednávky", cmOpenObjednavkaVydana, kbNoKey) +
+               *new TMenuItem("Ostatní ~z~ávazky", cmOpenZavazek, kbNoKey) +
+           *new TSubMenu("~Z~boží", kbAltZ) +
+               *new TMenuItem("~C~eník", cmOpenCenik, kbNoKey) +
+               *new TMenuItem("~S~kladové karty", cmOpenSkladovaKarta, kbNoKey) +
+               *new TMenuItem("Sk~l~ady", cmOpenSklad, kbNoKey) +
+               *new TMenuItem("Přijemky a ~v~ýdejky", cmOpenSkladovyPohyb, kbNoKey) +
+           *new TSubMenu("~P~eníze", kbAltP) +
+               *new TMenuItem("~B~anka", cmOpenBanka, kbNoKey) +
+               *new TMenuItem("Bankovní ~ú~čty", cmOpenBankovniUcet, kbNoKey) +
+               *new TMenuItem("Pokla~d~na", cmOpenPokladna, kbNoKey) +
+               *new TMenuItem("Pokladní doklad~y~", cmOpenPokladniPohyb, kbNoKey) +
+           *new TSubMenu("Ú~č~etnictví", kbAltU) +
+               *new TMenuItem("~D~eník", cmOpenUcetniDenik, kbNoKey) +
+               *new TMenuItem("Úč~t~y", cmOpenUcet, kbNoKey) +
+               *new TMenuItem("Střed~i~ska", cmOpenStredisko, kbNoKey) +
+               *new TMenuItem("~Z~akázky", cmOpenZakazka, kbNoKey) +
+               *new TMenuItem("~S~aldo", cmOpenSaldo, kbNoKey) +
+           *new TSubMenu("Nás~t~roje", kbAltT) +
+               *new TMenuItem("~E~vidence...", cmShowEvidences, kbAltE) +
+               *new TMenuItem("~F~ind...", cmShowSearch, kbAltF) +
+               *new TMenuItem("~Q~uery...", cmShowQuery, kbAltQ) +
+               *new TMenuItem("Chan~g~es...", cmShowChanges, kbAltG) +
+               *new TMenuItem("~B~rowser QR...", cmShowWebQr, kbAltB, hcNoContext, "Alt-B") +
            *new TSubMenu("~W~indow", kbAltW) +
                *new TMenuItem("~S~ize/move", cmResize, kbCtrlF5, hcNoContext, "Ctrl-F5") +
                *new TMenuItem("~Z~oom", cmZoom, kbNoKey) +
@@ -216,7 +244,7 @@ TMenuBar *AbraFlexiApp::initMenuBar(TRect r) {
                *new TMenuItem("~R~estore", cmRestoreWindows, kbNoKey) + newLine() +
                *new TMenuItem("~C~lose", cmClose, kbAltF3, hcNoContext, "Alt-F3") +
                *new TMenuItem("Close a~l~l", cmCloseAll, kbNoKey) +
-           *new TSubMenu("~H~elp", kbAltH) + *new TMenuItem("~A~bout...", cmShowAbout, kbF1, hcNoContext, "F1"));
+           *new TSubMenu("~N~ápověda", kbAltH) + *new TMenuItem("~A~bout...", cmShowAbout, kbF1, hcNoContext, "F1"));
 }
 
 TStatusLine *AbraFlexiApp::initStatusLine(TRect r) {
@@ -226,6 +254,56 @@ TStatusLine *AbraFlexiApp::initStatusLine(TRect r) {
                                       *new TStatusItem("~Alt-X~ Exit", kbAltX, cmQuit) +
                                       *new TStatusItem("~F10~ Menu", kbF10, cmMenu));
 }
+
+namespace {
+
+struct QuickOpen {
+    unsigned short cmd;
+    const char *evidence;
+    const char *columns;
+};
+
+// Menu-to-evidence wiring for the module menus' quick-open items (Adresář,
+// Prodej, Nákup, Zboží, Peníze, Účetnictví). Each opens a RecordListView
+// pinned to its evidence with a default column list suited to that document
+// type, bypassing the schema's own "inSummary" columns (preferExplicitColumns
+// below), since those are meant as reasonable defaults, not overridable
+// hints.
+constexpr QuickOpen quickOpens[] = {
+    {cmOpenAdresy, "adresar", "kod,nazev,ic,dic,mesto,email"},
+    {cmOpenKontakty, "kontakt", "kod,nazev,ic,dic,mesto,email"},
+    {cmOpenFakturaVydana, "faktura-vydana", "kod,datVyst,datSplat,firma,sumCelkem,mena,stavUhrK"},
+    {cmOpenObjednavkaPrijata, "objednavka-prijata", "kod,datVyst,datSplat,firma,sumCelkem,mena,stavUhrK"},
+    {cmOpenPohledavka, "pohledavka", "kod,datVyst,datSplat,firma,sumCelkem,mena,stavUhrK"},
+    {cmOpenFakturaPrijata, "faktura-prijata", "kod,datVyst,datSplat,cisDosle,firma,sumCelkem,stavUhrK"},
+    {cmOpenObjednavkaVydana, "objednavka-vydana", "kod,datVyst,datSplat,cisDosle,firma,sumCelkem,stavUhrK"},
+    {cmOpenZavazek, "zavazek", "kod,datVyst,datSplat,cisDosle,firma,sumCelkem,stavUhrK"},
+    {cmOpenCenik, "cenik", "kod,nazev,eanKod,cenaZakl,nakupCena"},
+    {cmOpenSkladovaKarta, "skladova-karta", "kod,nazev,eanKod,cenaZakl,nakupCena"},
+    {cmOpenSklad, "sklad", "kod,nazev"},
+    {cmOpenSkladovyPohyb, "skladovy-pohyb", "kod,datVyst,typPohybuK,sklad,firma,sumCelkem"},
+    {cmOpenBanka, "banka", "kod,datVyst,typPohybuK,varSym,firma,sumCelkem,buc"},
+    {cmOpenBankovniUcet, "bankovni-ucet", "kod,nazev,buc"},
+    {cmOpenPokladna, "pokladna", "kod,nazev"},
+    {cmOpenPokladniPohyb, "pokladni-pohyb", "kod,datVyst,typPohybuK,varSym,firma,sumCelkem"},
+    {cmOpenUcetniDenik, "ucetni-denik", "kod,datUcPr,ucetMd,ucetD,stredisko,castka"},
+    {cmOpenUcet, "ucet", "kod,nazev"},
+    {cmOpenStredisko, "stredisko", "kod,nazev"},
+    {cmOpenZakazka, "zakazka", "kod,nazev"},
+    {cmOpenSaldo, "saldo", "firma,doklad,zbyvaUhrK"},
+};
+
+const QuickOpen *findQuickOpen(unsigned short cmd) {
+    for (const QuickOpen &entry : quickOpens) {
+        if (entry.cmd == cmd) {
+            return &entry;
+        }
+    }
+
+    return nullptr;
+}
+
+} // namespace
 
 void AbraFlexiApp::handleEvent(TEvent &event) {
     TApplication::handleEvent(event);
@@ -325,8 +403,15 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
         break;
     }
 
-    default:
+    default: {
+        if (const QuickOpen *entry = findQuickOpen(event.message.command)) {
+            deskTop->insert(new RecordListView(client_, session_, entry->evidence, entry->columns, 20, "", nullptr,
+                                                "", true));
+            clearEvent(event);
+        }
+
         break;
+    }
     }
 }
 

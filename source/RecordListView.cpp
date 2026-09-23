@@ -8,8 +8,10 @@
 #include "abraflexitui/PrintDialog.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
+#include <algorithm>
 #include <cstring>
 #include <sstream>
 
@@ -147,7 +149,8 @@ void RecordListBox::handleEvent(TEvent &event) {
 
 RecordListView::RecordListView(CliClient &client, SessionStore &session, std::string evidence,
                                 std::string columns, int limit, std::string initialFocusId,
-                                const WindowBounds *initialBounds, std::string company)
+                                const WindowBounds *initialBounds, std::string company,
+                                bool preferExplicitColumns)
     : TWindowInit(&TWindow::initFrame),
       TWindow(initialWindowRect(initialBounds),
               ("Records: " + evidence + " [" + (company.empty() ? client.company() : company) + "]").c_str(),
@@ -167,7 +170,7 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
         }
     }
 
-    std::vector<std::string> summaryColumns = EvidenceSchema::summaryNames(schema_);
+    std::vector<std::string> summaryColumns = preferExplicitColumns ? std::vector<std::string>() : EvidenceSchema::summaryNames(schema_);
 
     if (!summaryColumns.empty()) {
         std::string joined;
@@ -212,6 +215,17 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
     orderInput_ = new TInputLine(TRect(x + 51, y, x + 70, y + 1), 40);
     insert(orderInput_);
     y += 1;
+
+    // TGroup never fills a group's own background - each child view only
+    // paints its own bounds, so the 1-cell gaps between the toolbar buttons
+    // below are otherwise never explicitly repainted and can be left
+    // showing stale content from whatever was last drawn there (reported:
+    // patches of the wrong color appearing in those gaps after an
+    // overlapping dialog closed). A blank TStaticText spanning the whole
+    // button row, inserted (and so drawn) before the buttons, guarantees
+    // every gap cell gets this dialog's own background painted on every
+    // redraw; the buttons drawn after it cover their own cells as usual.
+    insert(new TStaticText(TRect(x, y, right, static_cast<short>(y + 2)), ""));
 
     insert(new AppButton(TRect(x, y, x + 10, y + 2), "~R~efresh", cmRecordRefresh, bfNormal));
     insert(new AppButton(TRect(x + 11, y, x + 19, y + 2), "~N~ew", cmRecordCreateNew, bfNormal));
@@ -308,6 +322,31 @@ void RecordListView::placePanes() {
 
 std::vector<std::string> RecordListView::currentColumns() const {
     return splitColumns(columnsInput_->data);
+}
+
+void RecordListView::toggleColumn(const std::string &field) {
+    std::vector<std::string> columns = currentColumns();
+    auto it = std::find(columns.begin(), columns.end(), field);
+
+    if (it != columns.end()) {
+        columns.erase(it);
+    } else {
+        columns.push_back(field);
+    }
+
+    std::string joined;
+
+    for (std::size_t i = 0; i < columns.size(); ++i) {
+        joined += columns[i];
+
+        if (i + 1 < columns.size()) {
+            joined += ",";
+        }
+    }
+
+    setInputText(columnsInput_, joined);
+    columnsInput_->drawView();
+    refresh();
 }
 
 void RecordListView::refresh() {
@@ -507,7 +546,7 @@ void RecordListView::deleteSelected() {
 }
 
 void RecordListView::showFields() {
-    TProgram::deskTop->insert(new EvidenceInfoView(client_, evidence_, company_));
+    TProgram::deskTop->insert(new EvidenceInfoView(client_, evidence_, company_, this));
 }
 
 void RecordListView::printSelected() {
@@ -595,6 +634,11 @@ void RecordListView::handleEvent(TEvent &event) {
             clearEvent(event);
         }
     }
+}
+
+TColorAttr RecordListView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TWindow::mapColor(index);
 }
 
 } // namespace abraflexitui

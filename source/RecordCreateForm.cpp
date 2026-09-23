@@ -4,6 +4,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/EvidenceSchema.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <vector>
@@ -157,6 +158,11 @@ void RecordCreateForm::handleEvent(TEvent &event) {
             break;
         }
     }
+}
+
+TColorAttr RecordCreateForm::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui
