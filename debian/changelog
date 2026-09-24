@@ -1,3 +1,23 @@
+abraflexi-tui (1.1.0) unstable; urgency=medium
+
+  * Add Czech and German UI translations with an in-app Language menu
+    (GNU gettext).
+  * Add a record Download dialog: pick an export format from AbraFlexi's
+    format catalog and a destination path.
+  * Add horizontal scrolling to the record list when more columns are
+    selected than fit the window width.
+  * Add CUPS printing support for documents and attachments.
+  * Add a QR code view for the status-line URL and a document preview
+    dialog.
+  * Add a relation picker dialog and schema-aware rendering of
+    date/datetime/relation record fields.
+  * Add an Arkanoid/Breakout mini-game under the Help menu.
+  * Bind each window to its own company and show it in the title bar.
+  * Build against the system libtvision-dev package via pkg-config
+    instead of the vendored tvision submodule.
+
+ -- Vitex Software <info@vitexsoftware.cz>  Thu, 24 Sep 2026 13:35:28 +0200
+
 abraflexi-tui (1.0.0) unstable; urgency=medium
 
   * Initial release: Turbo Vision (tvision) TUI frontend for abraflexi-cli.
