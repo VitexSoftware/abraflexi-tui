@@ -1,0 +1,263 @@
+# Translation template for abraflexi-tui.
+# Copyright (C) 2026 Vitex Software
+# This file is distributed under the same license as the abraflexi-tui package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: abraflexi-tui 1.0\n"
+"Report-Msgid-Bugs-To: info@vitexsoftware.cz\n"
+"POT-Creation-Date: 2026-09-24 09:19+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: source/GameView.cpp:341 source/GameView.cpp:344
+msgid "   [Paused]"
+msgstr ""
+
+#: source/AppShell.cpp:226
+msgid "Acco~u~nting"
+msgstr ""
+
+#: source/AppShell.cpp:228
+msgid "Acc~o~unts"
+msgstr ""
+
+#: source/AppShell.cpp:223
+msgid "Bank acc~o~unts"
+msgstr ""
+
+#: source/AppShell.cpp:225
+msgid "Cash doc~u~ments"
+msgstr ""
+
+#: source/AppShell.cpp:224
+msgid "Cas~h~ register"
+msgstr ""
+
+#: source/AppShell.cpp:236
+msgid "Chan~g~es..."
+msgstr ""
+
+#: source/AppShell.cpp:248
+msgid "Close a~l~l"
+msgstr ""
+
+#: source/AppShell.cpp:229
+msgid "Cost ~c~enters"
+msgstr ""
+
+#: source/AppShell.cpp:242
+msgid "C~a~scade"
+msgstr ""
+
+#: source/AppShell.cpp:204
+msgid "E~x~it"
+msgstr ""
+
+#: source/GameView.cpp:338
+#, c-format
+msgid "Game Over - Level %d - close the window (Alt-F3)"
+msgstr ""
+
+#: source/GameView.cpp:340
+#, c-format
+msgid "Lives: %d   Level: %d   Space launches the ball%s"
+msgstr ""
+
+#: source/GameView.cpp:343
+#, c-format
+msgid "Lives: %d   Level: %d%s"
+msgstr ""
+
+#: source/AppShell.cpp:215
+msgid "Other ~l~iabilities"
+msgstr ""
+
+#: source/AppShell.cpp:211
+msgid "Other ~r~eceivables"
+msgstr ""
+
+#: source/AppShell.cpp:210
+msgid "Received ~o~rders"
+msgstr ""
+
+#: source/AppShell.cpp:213
+msgid "Rece~i~ved invoices"
+msgstr ""
+
+#: source/AppShell.cpp:231
+msgid "Sa~l~do"
+msgstr ""
+
+#: source/AppShell.cpp:203
+msgid "Ser~v~ers..."
+msgstr ""
+
+#: source/AppShell.cpp:220
+msgid "Stock ~m~ovements"
+msgstr ""
+
+#: source/AppShell.cpp:263
+msgid "~Alt-X~ Exit"
+msgstr ""
+
+#: source/AppShell.cpp:256
+msgid "~A~bout..."
+msgstr ""
+
+#: source/AppShell.cpp:205
+msgid "~A~ddress book"
+msgstr ""
+
+#: source/AppShell.cpp:206
+msgid "~A~ddresses"
+msgstr ""
+
+#: source/AppShell.cpp:222
+msgid "~B~ank"
+msgstr ""
+
+#: source/AppShell.cpp:237
+msgid "~B~rowser QR..."
+msgstr ""
+
+#: source/AppShell.cpp:247
+msgid "~C~lose"
+msgstr ""
+
+#: source/AppShell.cpp:202
+msgid "~C~ompanies..."
+msgstr ""
+
+#: source/AppShell.cpp:201
+msgid "~C~ompany"
+msgstr ""
+
+#: source/AppShell.cpp:207
+msgid "~C~ontacts"
+msgstr ""
+
+#: source/AppShell.cpp:230
+msgid "~C~ontracts"
+msgstr ""
+
+#: source/AppShell.cpp:233
+msgid "~E~vidence..."
+msgstr ""
+
+#: source/AppShell.cpp:264
+msgid "~F10~ Menu"
+msgstr ""
+
+#: source/AppShell.cpp:262
+msgid "~F1~ About"
+msgstr ""
+
+#: source/AppShell.cpp:234
+msgid "~F~ind..."
+msgstr ""
+
+#: source/AppShell.cpp:255
+msgid "~G~ame..."
+msgstr ""
+
+#: source/AppShell.cpp:216
+msgid "~G~oods"
+msgstr ""
+
+#: source/AppShell.cpp:254
+msgid "~H~elp"
+msgstr ""
+
+#: source/AppShell.cpp:209
+msgid "~I~ssued invoices"
+msgstr ""
+
+#: source/AppShell.cpp:214
+msgid "~I~ssued orders"
+msgstr ""
+
+#: source/AppShell.cpp:227
+msgid "~J~ournal"
+msgstr ""
+
+#: source/AppShell.cpp:249
+msgid "~L~anguage"
+msgstr ""
+
+#: source/AppShell.cpp:245
+msgid "~M~inimize all"
+msgstr ""
+
+#: source/AppShell.cpp:221
+msgid "~M~oney"
+msgstr ""
+
+#: source/AppShell.cpp:243
+msgid "~N~ext"
+msgstr ""
+
+#: source/AppShell.cpp:244
+msgid "~P~revious"
+msgstr ""
+
+#: source/AppShell.cpp:217
+msgid "~P~rice list"
+msgstr ""
+
+#: source/AppShell.cpp:212
+msgid "~P~urchase"
+msgstr ""
+
+#: source/AppShell.cpp:235
+msgid "~Q~uery..."
+msgstr ""
+
+#: source/AppShell.cpp:246
+msgid "~R~estore"
+msgstr ""
+
+#: source/AppShell.cpp:208
+msgid "~S~ales"
+msgstr ""
+
+#: source/AppShell.cpp:239
+msgid "~S~ize/move"
+msgstr ""
+
+#: source/AppShell.cpp:201
+msgid "~S~tatus..."
+msgstr ""
+
+#: source/AppShell.cpp:218
+msgid "~S~tock cards"
+msgstr ""
+
+#: source/AppShell.cpp:250
+msgid "~S~ystem default"
+msgstr ""
+
+#: source/AppShell.cpp:241
+msgid "~T~ile"
+msgstr ""
+
+#: source/AppShell.cpp:232
+msgid "~T~ools"
+msgstr ""
+
+#: source/AppShell.cpp:219
+msgid "~W~arehouses"
+msgstr ""
+
+#: source/AppShell.cpp:238
+msgid "~W~indow"
+msgstr ""
+
+#: source/AppShell.cpp:240
+msgid "~Z~oom"
+msgstr ""

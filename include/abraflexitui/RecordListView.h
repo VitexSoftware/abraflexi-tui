@@ -20,14 +20,21 @@ class RecordListView;
 // corresponds to displayed row i+1.
 class RecordListBox : public SimpleListViewer {
 public:
-    RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, RecordListView &ownerView) noexcept;
+    // `hScrollBar` lets rows scroll sideways when more columns are selected
+    // than fit the dialog's width; optional so callers that don't need it
+    // (none currently) can omit it.
+    RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, TScrollBar *hScrollBar,
+                  RecordListView &ownerView) noexcept;
 
     // `titles` maps a column's raw property name to its schema title
     // (EvidenceSchema); a column missing from it prints its raw name, same
     // as when `titles` is left empty (no schema available for this
-    // evidence).
+    // evidence). `schema` is used to look up each column's FieldSchema so
+    // object-valued cells (date/ref/currency) render as a human-readable
+    // value instead of raw JSON; may be null when no schema is available.
     void setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns,
-                     const std::map<std::string, std::string> &titles = {});
+                     const std::map<std::string, std::string> &titles = {},
+                     const std::vector<FieldSchema> *schema = nullptr);
     const nlohmann::json *selectedRecord() const;
     // Row index (matching focusItemNum()'s convention, i.e. 1-based since
     // row 0 is the header) of the record whose "id" field equals `id`, or
@@ -80,6 +87,7 @@ private:
     void deleteSelected();
     void showFields();
     void printSelected();
+    void downloadSelected();
     void openSelectedWindow();
     void placePanes();
     void applyPendingFocus();
@@ -99,6 +107,7 @@ private:
     TInputLine *orderInput_;
 
     RecordListBox *grid_ = nullptr;
+    TScrollBar *gridHScroll_ = nullptr;
     TStaticText *separator_ = nullptr;
     RecordDetailView *detail_ = nullptr;
 };

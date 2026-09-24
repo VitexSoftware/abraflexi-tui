@@ -208,6 +208,7 @@ LoadResult ProfileStore::load(std::string &error) {
     profiles_.clear();
     active_.clear();
     queryFormat_ = QueryFormat::Json;
+    language_.clear();
 
     if (path_.empty()) {
         error = "HOME is not set; cannot locate servers.json";
@@ -236,6 +237,7 @@ LoadResult ProfileStore::load(std::string &error) {
 
     active_ = jsonString(doc, "activeProfile");
     queryFormat_ = jsonString(doc, "queryFormat") == "xml" ? QueryFormat::Xml : QueryFormat::Json;
+    language_ = jsonString(doc, "language");
 
     if (doc.contains("profiles") && doc.at("profiles").is_array()) {
         for (const auto &item : doc.at("profiles")) {
@@ -300,6 +302,7 @@ bool ProfileStore::save(std::string &error) const {
 
     nlohmann::json doc = {{"activeProfile", active_},
                           {"queryFormat", queryFormat_ == QueryFormat::Xml ? "xml" : "json"},
+                          {"language", language_},
                           {"profiles", std::move(profiles)}};
     const std::string body = doc.dump(2) + "\n";
 

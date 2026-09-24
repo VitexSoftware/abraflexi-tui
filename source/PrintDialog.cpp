@@ -3,6 +3,7 @@
 #include "abraflexitui/PrinterUtil.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/WindowColors.h"
+#include "abraflexitui/RawDownload.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -210,35 +211,10 @@ bool PrintDialog::downloadRaw(const std::string &queryPath, std::string &outFile
     ::close(fd);
     outFilePath = tmpPattern;
 
-    // Use ProcessRunner to call abraflexi-cli query path directly
-    std::vector<std::string> argv = {client_.binaryPath()};
-    if (!client_.envFile().empty()) {
-        argv.push_back("--envfile=" + client_.envFile());
-    }
-    argv.push_back("query");
-    argv.push_back(queryPath);
-    argv.push_back("--method=GET");
-
-    std::map<std::string, std::string> env;
-    if (!company_.empty()) {
-        env["ABRAFLEXI_COMPANY"] = company_;
-    }
-
-    ProcessResult pr = ProcessRunner::run(argv, env);
-    if (pr.spawnFailed || pr.exitCode != 0) {
-        errMsg = pr.stdErr.empty() ? ("Failed to fetch PDF (exit code " + std::to_string(pr.exitCode) + ")") : pr.stdErr;
+    if (!downloadRawToFile(client_, queryPath, company_, outFilePath, errMsg)) {
         std::remove(outFilePath.c_str());
         return false;
     }
-
-    std::ofstream ofs(outFilePath, std::ios::binary);
-    if (!ofs) {
-        errMsg = "Failed to write PDF data to temporary file.";
-        std::remove(outFilePath.c_str());
-        return false;
-    }
-    ofs.write(pr.stdOut.data(), pr.stdOut.size());
-    ofs.close();
 
     return true;
 }

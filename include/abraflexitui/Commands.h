@@ -73,5 +73,14 @@ constexpr unsigned short cmOpenSaldo = 1070;
 
 constexpr unsigned short cmFieldFormPickRelation = 1071; // browse-button on a relation field row
 constexpr unsigned short cmRelationPickerSelect = 1072;  // "Select" button inside RelationPickerDialog
+constexpr unsigned short cmRecordDownload = 1073;        // "Download" button/Alt+D in RecordListView
+
+// Language menu: switches the active gettext catalog and rebuilds the menu
+// bar/status line so the change is visible immediately (see AppShell.cpp's
+// reloadMenuAndStatusLine()).
+constexpr unsigned short cmLangSystem = 1080;
+constexpr unsigned short cmLangEnglish = 1081;
+constexpr unsigned short cmLangCzech = 1082;
+constexpr unsigned short cmLangGerman = 1083;
 
 } // namespace abraflexitui

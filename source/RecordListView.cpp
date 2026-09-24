@@ -6,6 +6,7 @@
 #include "abraflexitui/EvidenceInfoView.h"
 #include "abraflexitui/DocumentPreview.h"
 #include "abraflexitui/PrintDialog.h"
+#include "abraflexitui/DownloadDialog.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/WindowColors.h"
@@ -66,12 +67,14 @@ WindowBounds toWindowBounds(const TRect &rect) {
 
 } // namespace
 
-RecordListBox::RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, RecordListView &ownerView) noexcept
-    : SimpleListViewer(bounds, vScrollBar), ownerView_(ownerView) {
+RecordListBox::RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, TScrollBar *hScrollBar,
+                              RecordListView &ownerView) noexcept
+    : SimpleListViewer(bounds, vScrollBar, hScrollBar), ownerView_(ownerView) {
 }
 
 void RecordListBox::setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns,
-                                const std::map<std::string, std::string> &titles) {
+                                const std::map<std::string, std::string> &titles,
+                                const std::vector<FieldSchema> *schema) {
     records_ = std::move(records);
 
     std::vector<std::string> rows;
@@ -92,7 +95,8 @@ void RecordListBox::setRecords(std::vector<nlohmann::json> records, const std::v
         std::string line;
 
         for (std::size_t i = 0; i < columns.size(); ++i) {
-            line += fitColumn(jsonField(rec, columns[i].c_str()), 18);
+            const FieldSchema *field = schema != nullptr ? EvidenceSchema::fieldByName(*schema, columns[i]) : nullptr;
+            line += fitColumn(jsonField(rec, columns[i].c_str(), field), 18);
 
             if (i + 1 < columns.size()) {
                 line += " ";
@@ -123,7 +127,7 @@ short RecordListBox::rowForId(const std::string &id) const {
     }
 
     for (std::size_t i = 0; i < records_.size(); ++i) {
-        if (jsonField(records_[i], "id") == id) {
+        if (recordIdentifier(records_[i]) == id) {
             return static_cast<short>(i + 1);
         }
     }
@@ -195,7 +199,7 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
 
     insert(new TStaticText(
         TRect(x, y, right, y + 1),
-        "F5=Refresh  Enter=Show  F4=Preview  F2=Fields  Alt+P=Print  Esc=Close"));
+        "F5=Refresh  Enter=Show  F4=Preview  F2=Fields  Alt+P=Print  Alt+D=Download  Esc=Close"));
     y += 1;
 
     insert(new TStaticText(TRect(x, y, x + 7, y + 1), "Filter:"));
@@ -234,6 +238,7 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
     insert(new AppButton(TRect(x + 39, y, x + 48, y + 2), "~I~nfo", cmShowEvidenceInfo, bfNormal));
     insert(new AppButton(TRect(x + 49, y, x + 60, y + 2), "~P~review", cmOpenRecordWindow, bfNormal));
     insert(new AppButton(TRect(x + 61, y, x + 71, y + 2), "Prin~t~", cmRecordPrint, bfNormal));
+    insert(new AppButton(TRect(x + 72, y, x + 84, y + 2), "D~o~wnload", cmRecordDownload, bfNormal));
     y += 2;
 
     short bottom = inner.b.y;
@@ -241,7 +246,8 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
     short gridBottom = y + (gridHeight > 3 ? gridHeight : 3);
 
     TScrollBar *gridScroll = standardScrollBar(sbVertical | sbHandleKeyboard);
-    grid_ = new RecordListBox(TRect(x, y, right, gridBottom), gridScroll, *this);
+    gridHScroll_ = standardScrollBar(sbHorizontal | sbHandleKeyboard);
+    grid_ = new RecordListBox(TRect(x, y, right, gridBottom), gridScroll, gridHScroll_, *this);
     insert(grid_);
 
     separator_ = new TStaticText(TRect(x, gridBottom, right, gridBottom + 1), std::string(right - x, '\xC4').c_str());
@@ -298,12 +304,25 @@ void RecordListView::placePanes() {
         gridBottom = static_cast<short>(bottom - 3);
     }
 
-    TRect gridRect(inner.a.x, y, static_cast<short>(inner.b.x - 1), gridBottom);
+    // The grid's own last row is reserved for the horizontal scrollbar (per
+    // the requested UX: a bar at the bottom of the grid, steered with
+    // Left/Right) rather than growing the window - it only becomes visible
+    // (via TScrollBar::show(), driven by its range in
+    // SimpleListViewer::updateHScrollRange()) once the selected columns
+    // don't fit the dialog's width.
+    const short listBottom = static_cast<short>(gridBottom - 1);
+
+    TRect gridRect(inner.a.x, y, static_cast<short>(inner.b.x - 1), listBottom);
     grid_->locate(gridRect);
 
     if (grid_->vScrollBar != nullptr) {
-        TRect bar(static_cast<short>(inner.b.x - 1), y, inner.b.x, gridBottom);
+        TRect bar(static_cast<short>(inner.b.x - 1), y, inner.b.x, listBottom);
         grid_->vScrollBar->locate(bar);
+    }
+
+    if (gridHScroll_ != nullptr) {
+        TRect hbar(inner.a.x, listBottom, static_cast<short>(inner.b.x - 1), gridBottom);
+        gridHScroll_->locate(hbar);
     }
 
     if (separator_ != nullptr) {
@@ -352,8 +371,31 @@ void RecordListView::toggleColumn(const std::string &field) {
 void RecordListView::refresh() {
     std::vector<std::string> columns = currentColumns();
 
+    // The record's "id" (and "kod", used as a fallback identifier - see
+    // recordIdentifier()) must always be fetched so every row can be
+    // identified for show/edit/delete/print, even when the user's chosen
+    // display columns don't include them - the displayed columns_ passed to
+    // setRecords() below are left untouched.
+    std::vector<std::string> fetchColumns = columns;
+
+    for (const char *required : {"id", "kod"}) {
+        if (std::find(fetchColumns.begin(), fetchColumns.end(), required) == fetchColumns.end()) {
+            fetchColumns.push_back(required);
+        }
+    }
+
+    std::string fetchColumnsJoined;
+
+    for (std::size_t i = 0; i < fetchColumns.size(); ++i) {
+        fetchColumnsJoined += fetchColumns[i];
+
+        if (i + 1 < fetchColumns.size()) {
+            fetchColumnsJoined += ",";
+        }
+    }
+
     std::vector<std::string> args = {"record", evidence_, "list",
-                                      std::string("--columns=") + columnsInput_->data,
+                                      std::string("--columns=") + fetchColumnsJoined,
                                       std::string("--limit=") + limitInput_->data};
 
     if (filterInput_->data[0] != '\0') {
@@ -384,7 +426,7 @@ void RecordListView::refresh() {
     // RecordListBox::focusItem() -> onRowFocused(), which already shows that
     // record (or the "(select a record above)" placeholder when the result
     // is empty) - no need to reset the detail pane here afterwards.
-    grid_->setRecords(std::move(records), columns, fieldTitles_);
+    grid_->setRecords(std::move(records), columns, fieldTitles_, &schema_);
     applyPendingFocus();
 }
 
@@ -413,7 +455,7 @@ void RecordListView::onRowFocused(const nlohmann::json *record) {
         session_.updateFocused(sessionHandle_, std::string());
     } else {
         detail_->showRecord(*record, &schema_);
-        session_.updateFocused(sessionHandle_, jsonField(*record, "id"));
+        session_.updateFocused(sessionHandle_, recordIdentifier(*record));
     }
 }
 
@@ -422,7 +464,7 @@ void RecordListView::onRowActivated(const nlohmann::json *record) {
         return;
     }
 
-    std::string id = jsonField(*record, "id");
+    std::string id = recordIdentifier(*record);
 
     if (id.empty()) {
         detail_->showRecord(*record);
@@ -447,7 +489,7 @@ void RecordListView::openSelectedWindow() {
         return;
     }
 
-    const std::string id = jsonField(*record, "id");
+    const std::string id = recordIdentifier(*record);
 
     if (id.empty()) {
         messageBox("The selected row has no id.", mfError | mfOKButton);
@@ -502,7 +544,7 @@ void RecordListView::editSelected() {
         return;
     }
 
-    const std::string id = jsonField(*record, "id");
+    const std::string id = recordIdentifier(*record);
 
     if (id.empty()) {
         messageBox("The selected row has no id.", mfError | mfOKButton);
@@ -524,7 +566,7 @@ void RecordListView::deleteSelected() {
         return;
     }
 
-    const std::string id = jsonField(*record, "id");
+    const std::string id = recordIdentifier(*record);
 
     if (id.empty()) {
         messageBox("The selected row has no id.", mfError | mfOKButton);
@@ -557,7 +599,7 @@ void RecordListView::printSelected() {
         return;
     }
 
-    const std::string id = jsonField(*record, "id");
+    const std::string id = recordIdentifier(*record);
 
     if (id.empty()) {
         messageBox("The selected row has no id.", mfError | mfOKButton);
@@ -565,6 +607,25 @@ void RecordListView::printSelected() {
     }
 
     PrintDialog *dlg = new PrintDialog(client_, evidence_, id, company_);
+    TProgram::application->executeDialog(dlg);
+}
+
+void RecordListView::downloadSelected() {
+    const nlohmann::json *record = grid_->selectedRecord();
+
+    if (record == nullptr) {
+        messageBox("Select a record first.", mfError | mfOKButton);
+        return;
+    }
+
+    const std::string id = recordIdentifier(*record);
+
+    if (id.empty()) {
+        messageBox("The selected row has no id.", mfError | mfOKButton);
+        return;
+    }
+
+    DownloadDialog *dlg = new DownloadDialog(client_, evidence_, id, company_);
     TProgram::application->executeDialog(dlg);
 }
 
@@ -615,12 +676,21 @@ void RecordListView::handleEvent(TEvent &event) {
             clearEvent(event);
             break;
 
+        case cmRecordDownload:
+            downloadSelected();
+            clearEvent(event);
+            break;
+
         default:
             break;
         }
     } else if (event.what == evKeyDown) {
         if (event.keyDown.keyCode == kbAltP) {
             printSelected();
+            clearEvent(event);
+        } else
+        if (event.keyDown.keyCode == kbAltD) {
+            downloadSelected();
             clearEvent(event);
         } else
         if (event.keyDown.keyCode == kbF5) {

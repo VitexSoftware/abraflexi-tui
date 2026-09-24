@@ -1,6 +1,7 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/GameView.h"
 #include "abraflexitui/GameWindow.h"
+#include "abraflexitui/i18n.h"
 
 #include <algorithm>
 #include <cmath>
@@ -334,13 +335,13 @@ void GameView::draw() {
             char text[128];
 
             if (gameOver_) {
-                std::snprintf(text, sizeof(text), "Game Over - Level %d - zavřete okno (Alt-F3)", level_);
+                std::snprintf(text, sizeof(text), _("Game Over - Level %d - close the window (Alt-F3)"), level_);
             } else if (!launched_) {
-                std::snprintf(text, sizeof(text), "Životy: %d   Level: %d   Mezerník vypustí míček%s", lives_, level_,
-                               focusPaused_ ? "   [Paused]" : "");
+                std::snprintf(text, sizeof(text), _("Lives: %d   Level: %d   Space launches the ball%s"), lives_,
+                               level_, focusPaused_ ? _("   [Paused]") : "");
             } else {
-                std::snprintf(text, sizeof(text), "Životy: %d   Level: %d%s", lives_, level_,
-                               focusPaused_ ? "   [Paused]" : "");
+                std::snprintf(text, sizeof(text), _("Lives: %d   Level: %d%s"), lives_, level_,
+                               focusPaused_ ? _("   [Paused]") : "");
             }
 
             b.moveStr(0, text, bgColor, static_cast<ushort>(size.x));

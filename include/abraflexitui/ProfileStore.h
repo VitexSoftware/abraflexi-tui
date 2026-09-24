@@ -62,6 +62,12 @@ public:
     QueryFormat queryFormat() const { return queryFormat_; }
     void setQueryFormat(QueryFormat format) { queryFormat_ = format; }
 
+    // "" follows the system locale; otherwise an ISO 639-1 code such as
+    // "en", "cs", "de" - see abraflexitui::setLanguage() in i18n.h, which
+    // this value is applied through at startup and after an in-app switch.
+    const std::string &language() const { return language_; }
+    void setLanguage(std::string lang) { language_ = std::move(lang); }
+
     static std::string defaultConfigPath();
 
 private:
@@ -69,6 +75,7 @@ private:
     std::string active_;
     std::vector<ServerProfile> profiles_;
     QueryFormat queryFormat_ = QueryFormat::Json;
+    std::string language_;
 };
 
 } // namespace abraflexitui

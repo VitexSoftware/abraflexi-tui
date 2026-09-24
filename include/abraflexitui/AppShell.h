@@ -34,6 +34,8 @@ private:
     void minimizeAll();
     void restoreWindows();
     void closeAllWindows();
+    void reloadMenuAndStatusLine();
+    void selectLanguage(const std::string &lang);
 
     struct MinimizedWindow {
         TWindow *window;
@@ -50,6 +52,13 @@ private:
     bool pendingSessionRestore_ = false;
     bool serverDialogOpen_ = false;
     bool statusDialogOpen_ = false;
+    // Rebuilding the menu bar must not happen synchronously from inside a
+    // cmLang* event: that event is itself raised while the Language
+    // submenu's own popup/tracking loop is still executing on the call
+    // stack, so deleting the TMenuBar out from under it there corrupts the
+    // screen. Deferred to idle() instead, once that loop has unwound - same
+    // pattern as pendingServerDialog_/pendingStatusDialog_ above.
+    bool pendingMenuReload_ = false;
     std::vector<MinimizedWindow> minimized_;
 };
 

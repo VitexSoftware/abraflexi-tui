@@ -1,6 +1,7 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/AppShell.h"
 #include "abraflexitui/ProfileStore.h"
+#include "abraflexitui/i18n.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +29,8 @@ bool takeFlag(const std::string &arg, const char *prefix, std::string &out) {
 } // namespace
 
 int main(int argc, char **argv) {
+    abraflexitui::initI18n();
+
     std::string cliBinary = envOr("ABRAFLEXI_TUI_CLI", "abraflexi-cli");
     std::string envFile;
 

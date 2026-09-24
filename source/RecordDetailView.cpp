@@ -32,6 +32,20 @@ bool logicIsTrue(const nlohmann::json &value) {
 
 void appendField(std::vector<std::string> &rows, const std::string &label, const nlohmann::json &value,
                   const FieldSchema *field) {
+    if (value.is_object()) {
+        std::string display = jsonDisplay(value, field);
+
+        // jsonDisplay() falls back to a raw dump for object shapes it
+        // doesn't recognize (date/ref/currency); anything else - a plain
+        // dump equal to what jsonDisplay() itself would produce - means the
+        // shape wasn't recognized, so keep today's readable multi-line
+        // pretty-print instead of a single unreadable JSON line.
+        if (display != value.dump()) {
+            rows.push_back(label + ": " + display);
+            return;
+        }
+    }
+
     if (value.is_object() || value.is_array()) {
         std::string pretty = value.dump(2);
         std::istringstream iss(pretty);
