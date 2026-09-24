@@ -51,6 +51,8 @@ add_executable(abraflexi-tui
     source/SearchView.cpp
     source/ChangesView.cpp
     source/AboutView.cpp
+    source/GameWindow.cpp
+    source/GameView.cpp
     source/QrCodeView.cpp
     source/DocumentPreview.cpp
     source/PrinterUtil.cpp

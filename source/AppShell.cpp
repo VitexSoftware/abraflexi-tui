@@ -11,6 +11,7 @@
 #include "abraflexitui/SearchView.h"
 #include "abraflexitui/ChangesView.h"
 #include "abraflexitui/AboutView.h"
+#include "abraflexitui/GameWindow.h"
 #include "abraflexitui/QrCodeView.h"
 #include "abraflexitui/DisplayUrl.h"
 
@@ -244,7 +245,9 @@ TMenuBar *AbraFlexiApp::initMenuBar(TRect r) {
                *new TMenuItem("~R~estore", cmRestoreWindows, kbNoKey) + newLine() +
                *new TMenuItem("~C~lose", cmClose, kbAltF3, hcNoContext, "Alt-F3") +
                *new TMenuItem("Close a~l~l", cmCloseAll, kbNoKey) +
-           *new TSubMenu("~N~ápověda", kbAltH) + *new TMenuItem("~A~bout...", cmShowAbout, kbF1, hcNoContext, "F1"));
+           *new TSubMenu("~N~ápověda", kbAltH) +
+               *new TMenuItem("~H~ra...", cmShowGame, kbNoKey) +
+               *new TMenuItem("~A~bout...", cmShowAbout, kbF1, hcNoContext, "F1"));
 }
 
 TStatusLine *AbraFlexiApp::initStatusLine(TRect r) {
@@ -365,6 +368,16 @@ void AbraFlexiApp::handleEvent(TEvent &event) {
 
     case cmShowWebQr: {
         openWebQr();
+        clearEvent(event);
+        break;
+    }
+
+    case cmShowGame: {
+        GameWindow *win = new GameWindow();
+        deskTop->insert(win);
+        // Only safe once win has an owner (deskTop) - see the comment in
+        // GameWindow's constructor for why this can't happen any earlier.
+        win->startGame();
         clearEvent(event);
         break;
     }

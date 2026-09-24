@@ -13,6 +13,7 @@ constexpr unsigned short cmShowSearch = 1005;
 constexpr unsigned short cmShowChanges = 1006;
 constexpr unsigned short cmShowAbout = 1007;
 constexpr unsigned short cmShowWebQr = 1008;
+constexpr unsigned short cmShowGame = 1009;
 
 constexpr unsigned short cmOpenRecordList = 1010;   // evidence picked -> open RecordListView
 constexpr unsigned short cmRecordFocused = 1011;    // record row highlight moved
