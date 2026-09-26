@@ -10,6 +10,8 @@ namespace abraflexitui {
 class QrCodeDialog : public TDialog {
 public:
     explicit QrCodeDialog(const std::string &url);
+
+    TColorAttr mapColor(uchar index) override;
 };
 
 } // namespace abraflexitui

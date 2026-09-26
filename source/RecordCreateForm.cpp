@@ -4,6 +4,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/EvidenceSchema.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <vector>
@@ -42,19 +43,19 @@ RecordCreateForm::RecordCreateForm(CliClient &client, std::string evidence, std:
     y += 1;
 
     const short formBottom = static_cast<short>(inner.b.y - 3);
-    form_ = new RecordFieldForm(TRect(x, y, right, formBottom), schema, nlohmann::json::object());
+    form_ = new RecordFieldForm(TRect(x, y, right, formBottom), client_, company_, schema, nlohmann::json::object());
     growFill(form_);
     insert(form_);
 
-    TView *dryRun = new AppButton(TRect(right - 32, formBottom, right - 20, formBottom + 2), "Dry-~R~un",
+    TView *dryRun = new AppButton(TRect(right - 37, formBottom, right - 25, formBottom + 2), "Dry-~R~un",
                                 cmRecordCreateDryRun, bfNormal);
     stickCorner(dryRun);
     insert(dryRun);
-    TView *submit = new AppButton(TRect(right - 19, formBottom, right - 9, formBottom + 2), "~S~ubmit",
+    TView *submit = new AppButton(TRect(right - 24, formBottom, right - 14, formBottom + 2), "~S~ubmit",
                                 cmRecordCreateSubmit, bfDefault);
     stickCorner(submit);
     insert(submit);
-    TView *cancel = new AppButton(TRect(right - 8, formBottom, right, formBottom + 2), "Cancel", cmCancel, bfNormal);
+    TView *cancel = new AppButton(TRect(right - 13, formBottom, right - 5, formBottom + 2), "Cancel", cmCancel, bfNormal);
     stickCorner(cancel);
     insert(cancel);
 
@@ -157,6 +158,11 @@ void RecordCreateForm::handleEvent(TEvent &event) {
             break;
         }
     }
+}
+
+TColorAttr RecordCreateForm::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

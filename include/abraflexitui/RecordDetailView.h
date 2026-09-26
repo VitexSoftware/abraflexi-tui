@@ -38,6 +38,8 @@ public:
     const std::string &recordId() const { return id_; }
     const std::string &company() const { return company_; }
 
+    TColorAttr mapColor(uchar index) override;
+
 private:
     std::string evidence_;
     std::string id_;

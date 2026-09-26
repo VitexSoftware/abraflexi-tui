@@ -41,5 +41,6 @@
 #define Uses_MsgBox
 #define Uses_TProgram
 #define Uses_TScreen
+#define Uses_TFileDialog
 
 #include <tvision/tv.h>

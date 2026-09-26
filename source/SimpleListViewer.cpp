@@ -1,12 +1,14 @@
 #include "abraflexitui/TV.h"
 #include "abraflexitui/SimpleListViewer.h"
+#include "abraflexitui/WindowColors.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace abraflexitui {
 
-SimpleListViewer::SimpleListViewer(const TRect &bounds, TScrollBar *vScrollBar) noexcept
-    : TListViewer(bounds, 1, nullptr, vScrollBar) {
+SimpleListViewer::SimpleListViewer(const TRect &bounds, TScrollBar *vScrollBar, TScrollBar *hScrollBar) noexcept
+    : TListViewer(bounds, 1, hScrollBar, vScrollBar) {
 }
 
 void SimpleListViewer::setRows(std::vector<std::string> rows) {
@@ -22,7 +24,69 @@ void SimpleListViewer::setRows(std::vector<std::string> rows) {
     // also drives subclass overrides, e.g. RecordListBox updating the
     // embedded detail pane for the newly focused row.
     focusItem(rows_.size() > 1 ? 1 : 0);
+    updateHScrollRange();
     drawView();
+}
+
+void SimpleListViewer::changeBounds(const TRect &bounds) {
+    TListViewer::changeBounds(bounds);
+    updateHScrollRange();
+}
+
+void SimpleListViewer::updateHScrollRange() {
+    if (hScrollBar == nullptr) {
+        return;
+    }
+
+    std::size_t maxWidth = 0;
+
+    for (const auto &row : rows_) {
+        maxWidth = std::max(maxWidth, row.size());
+    }
+
+    // Text is drawn starting at column 1 of the view (column 0 is left for
+    // the focus/selection marker in TListViewer::draw()), so only size.x-1
+    // columns are actually available to show row content.
+    const short visible = size.x > 1 ? static_cast<short>(size.x - 1) : 0;
+    const short maxScroll =
+        maxWidth > static_cast<std::size_t>(visible) ? static_cast<short>(maxWidth - visible) : 0;
+    const short pgStep = visible > 0 ? visible : 1;
+    const int startValue = std::min(hScrollBar->value, static_cast<int>(maxScroll));
+    hScrollBar->setParams(startValue, 0, maxScroll, pgStep, 1);
+
+    // Only take up screen space when there is actually something to scroll
+    // to - most lists' columns fit the view, and a bar that's always visible
+    // but always a no-op would just be clutter.
+    if (maxScroll > 0) {
+        hScrollBar->show();
+    } else {
+        hScrollBar->hide();
+    }
+}
+
+void SimpleListViewer::handleEvent(TEvent &event) {
+    // TListViewer only interprets Left/Right as column navigation when
+    // numCols > 1 (see TListViewer::handleEvent); every list here uses a
+    // single column, so it otherwise ignores them. Repurpose them for
+    // horizontal scrolling whenever a row is wider than the view.
+    if (event.what == evKeyDown && hScrollBar != nullptr) {
+        switch (event.keyDown.keyCode) {
+        case kbLeft:
+            hScrollBar->setValue(static_cast<short>(hScrollBar->value - 1));
+            clearEvent(event);
+            return;
+
+        case kbRight:
+            hScrollBar->setValue(static_cast<short>(hScrollBar->value + 1));
+            clearEvent(event);
+            return;
+
+        default:
+            break;
+        }
+    }
+
+    TListViewer::handleEvent(event);
 }
 
 void SimpleListViewer::draw() {
@@ -45,11 +109,40 @@ void SimpleListViewer::draw() {
             text[255] = '\0';
 
             const TColorAttr color = TColorAttr(getColor(2)).reversed();
+            const ushort hOffset = hScrollBar != nullptr ? static_cast<ushort>(hScrollBar->value) : 0;
             TDrawBuffer b;
             b.moveChar(0, ' ', color, static_cast<ushort>(size.x));
-            b.moveStr(1, text, color, static_cast<ushort>(size.x > 1 ? size.x - 1 : 0));
+            b.moveStr(1, text, color, static_cast<ushort>(size.x > 1 ? size.x - 1 : 0), hOffset);
             writeLine(0, line, size.x, 1, b);
         }
+    }
+}
+
+// Same "don't trust the resolved palette color under an arbitrary terminal
+// theme" reasoning as AppButton/StatusView: TListViewer's stock palette (see
+// cpListViewer in views.h) resolves through the owning window's and
+// application's palette chain, which this app never customizes, so under a
+// terminal ANSI theme that recolors most indices red/orange the whole grid
+// background turns light red (reported: entire record list unreadable).
+// Overriding mapColor() here bypasses that chain for every SimpleListViewer
+// (record grids, evidence/company lists, structure lists) with fixed RGB
+// colors, so they render the same regardless of the terminal's color scheme.
+TColorAttr SimpleListViewer::mapColor(uchar index) {
+    static const uint32_t fg = 0xF0F0F0;
+    static const uint32_t bg = kFieldBg;         // lighter "this is a data area" tone, matches InputLine.
+    static const uint32_t selectedBg = 0x264F78; // accent blue.
+
+    switch (index) {
+    case 1: // Active
+    case 2: // Inactive
+    case 3: // Focused
+        return TColorAttr(TColor(TColorRGB(fg)), TColor(TColorRGB(bg)));
+    case 4: // Selected
+        return TColorAttr(TColor(TColorRGB(fg)), TColor(TColorRGB(selectedBg)));
+    case 5: // Divider
+        return TColorAttr(TColor(TColorRGB(0x6B7C93)), TColor(TColorRGB(bg)));
+    default:
+        return TListViewer::mapColor(index);
     }
 }
 

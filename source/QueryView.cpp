@@ -3,6 +3,7 @@
 #include "abraflexitui/QueryView.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/CodeFormat.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <cstring>
@@ -172,6 +173,11 @@ void QueryView::handleEvent(TEvent &event) {
         formatBody();
         clearEvent(event);
     }
+}
+
+TColorAttr QueryView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TDialog::mapColor(index);
 }
 
 } // namespace abraflexitui

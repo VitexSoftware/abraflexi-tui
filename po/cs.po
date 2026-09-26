@@ -1,0 +1,264 @@
+# Czech translations for abraflexi-tui.
+# Copyright (C) 2026 Vitex Software
+# This file is distributed under the same license as the abraflexi-tui package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: abraflexi-tui 1.0\n"
+"Report-Msgid-Bugs-To: info@vitexsoftware.cz\n"
+"POT-Creation-Date: 2026-09-24 08:46+0200\n"
+"PO-Revision-Date: 2026-09-24 08:46+0200\n"
+"Last-Translator: Vitex Software <info@vitexsoftware.cz>\n"
+"Language-Team: Czech\n"
+"Language: cs\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: source/GameView.cpp:341 source/GameView.cpp:344
+msgid "   [Paused]"
+msgstr "   [Pozastaveno]"
+
+#: source/AppShell.cpp:226
+msgid "Acco~u~nting"
+msgstr "Ú~č~etnictví"
+
+#: source/AppShell.cpp:228
+msgid "Acc~o~unts"
+msgstr "Úč~t~y"
+
+#: source/AppShell.cpp:223
+msgid "Bank acc~o~unts"
+msgstr "Bankovní ~ú~čty"
+
+#: source/AppShell.cpp:225
+msgid "Cash doc~u~ments"
+msgstr "Pokladní doklad~y~"
+
+#: source/AppShell.cpp:224
+msgid "Cas~h~ register"
+msgstr "Pokla~d~na"
+
+#: source/AppShell.cpp:236
+msgid "Chan~g~es..."
+msgstr "Chan~g~es..."
+
+#: source/AppShell.cpp:248
+msgid "Close a~l~l"
+msgstr "Close a~l~l"
+
+#: source/AppShell.cpp:229
+msgid "Cost ~c~enters"
+msgstr "Střed~i~ska"
+
+#: source/AppShell.cpp:242
+msgid "C~a~scade"
+msgstr "C~a~scade"
+
+#: source/AppShell.cpp:204
+msgid "E~x~it"
+msgstr "E~x~it"
+
+#: source/GameView.cpp:338
+#, c-format
+msgid "Game Over - Level %d - close the window (Alt-F3)"
+msgstr "Game Over - Level %d - zavřete okno (Alt-F3)"
+
+#: source/GameView.cpp:340
+#, c-format
+msgid "Lives: %d   Level: %d   Space launches the ball%s"
+msgstr "Životy: %d   Level: %d   Mezerník vypustí míček%s"
+
+#: source/GameView.cpp:343
+#, c-format
+msgid "Lives: %d   Level: %d%s"
+msgstr "Životy: %d   Level: %d%s"
+
+#: source/AppShell.cpp:215
+msgid "Other ~l~iabilities"
+msgstr "Ostatní ~z~ávazky"
+
+#: source/AppShell.cpp:211
+msgid "Other ~r~eceivables"
+msgstr "Ostatní ~p~ohledávky"
+
+#: source/AppShell.cpp:210
+msgid "Received ~o~rders"
+msgstr "Přijaté ~o~bjednávky"
+
+#: source/AppShell.cpp:213
+msgid "Rece~i~ved invoices"
+msgstr "Při~j~até faktury"
+
+#: source/AppShell.cpp:231
+msgid "Sa~l~do"
+msgstr "~S~aldo"
+
+#: source/AppShell.cpp:203
+msgid "Ser~v~ers..."
+msgstr "Ser~v~ers..."
+
+#: source/AppShell.cpp:220
+msgid "Stock ~m~ovements"
+msgstr "Přijemky a ~v~ýdejky"
+
+#: source/AppShell.cpp:263
+msgid "~Alt-X~ Exit"
+msgstr "~Alt-X~ Konec"
+
+#: source/AppShell.cpp:256
+msgid "~A~bout..."
+msgstr "~A~bout..."
+
+#: source/AppShell.cpp:205
+msgid "~A~ddress book"
+msgstr "~A~dresář"
+
+#: source/AppShell.cpp:206
+msgid "~A~ddresses"
+msgstr "~A~dresy"
+
+#: source/AppShell.cpp:222
+msgid "~B~ank"
+msgstr "~B~anka"
+
+#: source/AppShell.cpp:237
+msgid "~B~rowser QR..."
+msgstr "~B~rowser QR..."
+
+#: source/AppShell.cpp:247
+msgid "~C~lose"
+msgstr "~C~lose"
+
+#: source/AppShell.cpp:202
+msgid "~C~ompanies..."
+msgstr "~C~ompanies..."
+
+#: source/AppShell.cpp:201
+msgid "~C~ompany"
+msgstr "F~i~rma"
+
+#: source/AppShell.cpp:207
+msgid "~C~ontacts"
+msgstr "~K~ontakty"
+
+#: source/AppShell.cpp:230
+msgid "~C~ontracts"
+msgstr "~Z~akázky"
+
+#: source/AppShell.cpp:233
+msgid "~E~vidence..."
+msgstr "~E~vidence..."
+
+#: source/AppShell.cpp:264
+msgid "~F10~ Menu"
+msgstr "~F10~ Menu"
+
+#: source/AppShell.cpp:262
+msgid "~F1~ About"
+msgstr "~F1~ O programu"
+
+#: source/AppShell.cpp:234
+msgid "~F~ind..."
+msgstr "~F~ind..."
+
+#: source/AppShell.cpp:255
+msgid "~G~ame..."
+msgstr "~H~ra..."
+
+#: source/AppShell.cpp:216
+msgid "~G~oods"
+msgstr "~Z~boží"
+
+#: source/AppShell.cpp:254
+msgid "~H~elp"
+msgstr "~N~ápověda"
+
+#: source/AppShell.cpp:209
+msgid "~I~ssued invoices"
+msgstr "~V~ydané faktury"
+
+#: source/AppShell.cpp:214
+msgid "~I~ssued orders"
+msgstr "~V~ydané objednávky"
+
+#: source/AppShell.cpp:227
+msgid "~J~ournal"
+msgstr "~D~eník"
+
+#: source/AppShell.cpp:249
+msgid "~L~anguage"
+msgstr "~J~azyk"
+
+#: source/AppShell.cpp:245
+msgid "~M~inimize all"
+msgstr "~M~inimize all"
+
+#: source/AppShell.cpp:221
+msgid "~M~oney"
+msgstr "~P~eníze"
+
+#: source/AppShell.cpp:243
+msgid "~N~ext"
+msgstr "~N~ext"
+
+#: source/AppShell.cpp:244
+msgid "~P~revious"
+msgstr "~P~revious"
+
+#: source/AppShell.cpp:217
+msgid "~P~rice list"
+msgstr "~C~eník"
+
+#: source/AppShell.cpp:212
+msgid "~P~urchase"
+msgstr "Ná~k~up"
+
+#: source/AppShell.cpp:235
+msgid "~Q~uery..."
+msgstr "~Q~uery..."
+
+#: source/AppShell.cpp:246
+msgid "~R~estore"
+msgstr "~R~estore"
+
+#: source/AppShell.cpp:208
+msgid "~S~ales"
+msgstr "P~r~odej"
+
+#: source/AppShell.cpp:239
+msgid "~S~ize/move"
+msgstr "~S~ize/move"
+
+#: source/AppShell.cpp:201
+msgid "~S~tatus..."
+msgstr "~S~tatus..."
+
+#: source/AppShell.cpp:218
+msgid "~S~tock cards"
+msgstr "~S~kladové karty"
+
+#: source/AppShell.cpp:250
+msgid "~S~ystem default"
+msgstr "~S~ystémové výchozí"
+
+#: source/AppShell.cpp:241
+msgid "~T~ile"
+msgstr "~T~ile"
+
+#: source/AppShell.cpp:232
+msgid "~T~ools"
+msgstr "Nás~t~roje"
+
+#: source/AppShell.cpp:219
+msgid "~W~arehouses"
+msgstr "Sk~l~ady"
+
+#: source/AppShell.cpp:238
+msgid "~W~indow"
+msgstr "~W~indow"
+
+#: source/AppShell.cpp:240
+msgid "~Z~oom"
+msgstr "~Z~oom"

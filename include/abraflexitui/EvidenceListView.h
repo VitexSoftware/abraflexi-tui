@@ -37,6 +37,7 @@ public:
     void applyQuery(const std::string &query);
     void changeBounds(const TRect &bounds) override;
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void openSelected(unsigned short command, nlohmann::json *evidence);

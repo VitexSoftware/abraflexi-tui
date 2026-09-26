@@ -15,6 +15,8 @@ class CompanyListView : public TWindow {
 public:
     CompanyListView(CliClient &client, std::function<void(const std::string &)> onChosen);
 
+    TColorAttr mapColor(uchar index) override;
+
 private:
     void chooseFocused();
 

@@ -4,6 +4,7 @@
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/RecordListView.h"
 #include "abraflexitui/EvidenceInfoView.h"
+#include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
 #include <cctype>
@@ -396,6 +397,11 @@ void EvidenceListView::handleEvent(TEvent &event) {
         openSelected(event.message.command, static_cast<nlohmann::json *>(event.message.infoPtr));
         clearEvent(event);
     }
+}
+
+TColorAttr EvidenceListView::mapColor(uchar index) {
+    TColorAttr color;
+    return windowColor(index, color) ? color : TWindow::mapColor(index);
 }
 
 } // namespace abraflexitui

@@ -17,6 +17,7 @@ public:
     explicit ChangesView(CliClient &client);
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void reload();

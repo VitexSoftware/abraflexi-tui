@@ -16,6 +16,7 @@ public:
     ServerConfigView(ProfileStore &store, CliClient &client, std::function<void()> onChanged);
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void refreshList();

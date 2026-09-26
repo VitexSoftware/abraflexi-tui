@@ -14,6 +14,7 @@ public:
     AboutView();
 
     void handleEvent(TEvent &event) override;
+    TColorAttr mapColor(uchar index) override;
 
 private:
     void openSelected();
