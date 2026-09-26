@@ -2,6 +2,7 @@
 
 #include "abraflexitui/TV.h"
 #include "abraflexitui/CliClient.h"
+#include "abraflexitui/SimpleListViewer.h"
 
 #include <string>
 #include <vector>
@@ -27,14 +28,24 @@ public:
     // (Enter or mouse click). No-op for rows that don't map to a toggleable
     // field (header/blank lines, Relations, Labels) or when this view was
     // not opened from a RecordListView.
+    void applyQuery(const std::string &query);
     void toggleFocusedField(short item);
+    void handleEvent(TEvent &event) override;
+    void changeBounds(const TRect &bounds) override;
     TColorAttr mapColor(uchar index) override;
 
 private:
+    void setQueryText(const std::string &query);
+    void placeList();
+
     std::string company_;
     RecordListView *recordList_;
-    // Row index (as seen by the underlying SimpleListViewer) -> field name;
-    // empty string for rows that are not a toggleable column entry.
+    SimpleListViewer *list_ = nullptr;
+    TInputLine *queryInput_ = nullptr;
+    std::string query_;
+    // Full structure listing. rowFields_ stays aligned with the rows currently shown.
+    std::vector<std::string> allRows_;
+    std::vector<std::string> allFields_;
     std::vector<std::string> rowFields_;
 };
 

@@ -5,6 +5,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/SimpleListViewer.h"
+#include "abraflexitui/TextFold.h"
 #include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
@@ -259,6 +260,7 @@ DocumentPreview::DocumentPreview(CliClient &client, std::string evidence, std::s
     insert(items_);
     placeItems();
     reloadItems();
+    items_->select();
 }
 
 void DocumentPreview::changeBounds(const TRect &bounds) {
@@ -296,7 +298,9 @@ void DocumentPreview::showStatus() {
         return;
     }
 
-    std::string line = itemsLabel_ + "  Filter: ";
+    std::string line = itemsLabel_ + "  Find: ";
+    line += find_.empty() ? "(type)" : find_;
+    line += "   Filter: ";
     line += filter_.empty() ? "(none)" : filter_;
     line += "   Sort: ";
     line += order_.empty() ? "(none)" : order_;
@@ -330,23 +334,21 @@ void DocumentPreview::reloadItems() {
     }
 
     CliClient::Result result = client_.runJsonForCompany({"query", path, "--method=GET"}, company_);
-    std::vector<std::string> rows;
-    std::string header;
+    itemHeader_.clear();
+    itemLines_.clear();
 
     for (std::size_t i = 0; i < columns_.size(); ++i) {
         const std::size_t width = (columns_[i] == "nazev" || columns_[i] == "email" || columns_[i] == "prijmeni") ? 22 : 12;
-        header += fitColumn(columns_[i], width);
+        itemHeader_ += fitColumn(columns_[i], width);
 
         if (i + 1 < columns_.size()) {
-            header += " ";
+            itemHeader_ += " ";
         }
     }
 
-    rows.push_back(header);
-
     if (!result.ok) {
-        rows.push_back(result.errorMessage.empty() ? "Could not load items" : result.errorMessage);
-        items_->setRows(std::move(rows));
+        items_->setRows({itemHeader_, result.errorMessage.empty() ? "Could not load items" : result.errorMessage});
+        showStatus();
         return;
     }
 
@@ -371,9 +373,7 @@ void DocumentPreview::reloadItems() {
         }
     }
 
-    if (records == nullptr || records->empty()) {
-        rows.push_back("(no " + itemsLabel_ + ")");
-    } else {
+    if (records != nullptr) {
         for (const auto &rec : *records) {
             std::string line;
 
@@ -386,11 +386,35 @@ void DocumentPreview::reloadItems() {
                 }
             }
 
-            rows.push_back(std::move(line));
+            itemLines_.push_back(std::move(line));
         }
     }
 
+    applyFind();
+}
+
+void DocumentPreview::applyFind() {
+    std::vector<std::string> rows;
+
+    if (!itemHeader_.empty()) {
+        rows.push_back(itemHeader_);
+    }
+
+    int shown = 0;
+
+    for (const auto &line : itemLines_) {
+        if (foldedContains(line, find_)) {
+            rows.push_back(line);
+            ++shown;
+        }
+    }
+
+    if (shown == 0) {
+        rows.push_back(itemLines_.empty() ? "(no " + itemsLabel_ + ")" : "(no match)");
+    }
+
     items_->setRows(std::move(rows));
+    showStatus();
 }
 
 void DocumentPreview::askFilter() {
@@ -414,6 +438,13 @@ void DocumentPreview::askSort() {
 }
 
 void DocumentPreview::handleEvent(TEvent &event) {
+    if (event.what == evKeyDown && event.keyDown.keyCode == kbEsc && !find_.empty() && current == items_) {
+        find_.clear();
+        applyFind();
+        clearEvent(event);
+        return;
+    }
+
     TWindow::handleEvent(event);
 
     if (event.what == evCommand) {
@@ -446,6 +477,21 @@ void DocumentPreview::handleEvent(TEvent &event) {
     } else if (event.what == evKeyDown && event.keyDown.keyCode == kbF5) {
         reloadItems();
         clearEvent(event);
+    } else if (event.what == evKeyDown && current == items_ && items_ != nullptr) {
+        if (event.keyDown.keyCode == kbBack) {
+            popUtf8(find_);
+            applyFind();
+            clearEvent(event);
+            return;
+        }
+
+        const TStringView typed = event.keyDown.getText();
+
+        if (typed.size() > 0 && event.keyDown.text[0] >= 32) {
+            find_ += std::string(typed.data(), typed.size());
+            applyFind();
+            clearEvent(event);
+        }
     }
 }
 

@@ -32,11 +32,11 @@ PDF preview, company backup/restore/clone, the custom-button designer and a webh
 |-----|--------|
 | `Alt+A` | Open the AbraFlexi menu |
 | `Alt+S` | Status |
-| `Alt+C` | Companies. Enter on a row chooses that company; it then appears on the status line |
+| `Alt+C` | Companies. Type to narrow by database name, name or status. Enter chooses the company; it then appears on the status line |
 | `Alt+E` | Evidences |
 | `Alt+V` | Servers |
 | `Alt+Q` | Query |
-| `Alt+F` | Find |
+| `Alt+F` | Find. The evidence field narrows the catalogue as you type; Tab copies the highlighted path, Enter opens it |
 | `Alt+G` | Changes API |
 | `Alt+B` | QR code of the web address currently shown on the status line |
 | `Alt+H` | Help menu |
@@ -68,23 +68,24 @@ Lists, record windows and the evidence browser take part in tiling. Dialogs do n
 | `↑/↓`, mouse wheel | Move selection |
 | Type | Narrow the list by path, name or description. Backspace deletes the last character |
 | `Enter`, double-click | Open the record list for the selected evidence |
-| `F2` | Columns, relations and labels of the selected evidence |
+| `F2` | Columns, relations and labels of the selected evidence. Type to narrow that structure list |
 
 ### Record List
 
 | Key | Action |
 |-----|--------|
-| `↑/↓` | Move selection (updates the detail panel from already-fetched row data) |
+| Type, Find | Narrow the rows already loaded, by the visible columns. Diacritics are ignored. Backspace deletes the last character |
+| `↑/↓` | Move selection (updates the detail panel from already-fetched row data). Works while Find is focused |
 | `Enter`, double-click | Fetch and show the full record in the lower pane (`record <evidence> show <id>`) |
 | `F4`, Preview | Open a read-only window. A document shows its header and line items, with Filter and Sort; anything else shows the field list. A second Preview of the same id brings that window forward |
 | `F5` | Re-run the list query with the current filter/columns/limit/order |
 | `F2` | Evidence structure (columns, relations, labels) |
-| Filter / Columns / Limit / Order fields | Map 1:1 to `record <evidence> list -f -c -l -o` |
+| Filter / Columns / Limit / Order fields | Map 1:1 to `record <evidence> list -f -c -l -o`. Columns and Order suggest matching field names in the detail pane as you type |
 | Refresh / New / Edit / Delete / Info / Preview | Reload, create, edit the selected row, delete it after confirmation, open the structure window, or open a read-only preview |
 
 ### Document preview
 
-`F4` on an invoice opens its line items. On an address-book row it opens that company's contacts (`jmeno`, `prijmeni`, `email`, `tel`). Filter and Sort apply to that listing. A company with no contacts shows `no Contacts`.
+`F4` on an invoice opens its line items. On an address-book row it opens that company's contacts (`jmeno`, `prijmeni`, `email`, `tel`). Filter and Sort apply to that listing. Typing while the list is focused narrows the loaded rows; the text is shown on the status line and Esc clears it. A company with no contacts shows `no Contacts`.
 
 | Control | Action |
 |---------|--------|

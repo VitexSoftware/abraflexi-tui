@@ -9,6 +9,7 @@
 #include "abraflexitui/DownloadDialog.h"
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/TextFold.h"
 #include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
@@ -47,6 +48,73 @@ void setInputText(TInputLine *input, const std::string &text) {
     input->data[input->maxLen] = '\0';
 }
 
+class FindLine : public TInputLine {
+public:
+    FindLine(const TRect &bounds, RecordListView &owner) noexcept : TInputLine(bounds, 80), owner_(owner) {
+    }
+
+    void handleEvent(TEvent &event) override {
+        TInputLine::handleEvent(event);
+
+        if (data != nullptr && std::string(data) != seen_) {
+            seen_ = data;
+            owner_.applyFind(seen_);
+        }
+    }
+
+    void remember(const std::string &text) {
+        seen_ = text;
+    }
+
+private:
+    RecordListView &owner_;
+    std::string seen_;
+};
+
+class FieldLine : public TInputLine {
+public:
+    FieldLine(const TRect &bounds, RecordListView &owner, bool sortableOnly, int maxLen) noexcept
+        : TInputLine(bounds, maxLen), owner_(owner), sortableOnly_(sortableOnly) {
+    }
+
+    void handleEvent(TEvent &event) override {
+        TInputLine::handleEvent(event);
+
+        if (data != nullptr && std::string(data) != seen_) {
+            seen_ = data;
+            owner_.suggestFields(seen_, sortableOnly_);
+        }
+    }
+
+    void remember(const std::string &text) {
+        seen_ = text;
+    }
+
+private:
+    RecordListView &owner_;
+    std::string seen_;
+    bool sortableOnly_;
+};
+
+std::string lastFieldToken(const std::string &text) {
+    const std::size_t comma = text.rfind(',');
+    std::string token = comma == std::string::npos ? text : text.substr(comma + 1);
+    const std::size_t at = token.find('@');
+
+    if (at != std::string::npos) {
+        token.resize(at);
+    }
+
+    const std::size_t start = token.find_first_not_of(" \t");
+
+    if (start == std::string::npos) {
+        return std::string();
+    }
+
+    const std::size_t end = token.find_last_not_of(" \t");
+    return token.substr(start, end - start + 1);
+}
+
 TRect initialWindowRect(const WindowBounds *bounds) {
     if (bounds != nullptr) {
         return TRect(static_cast<short>(bounds->x1), static_cast<short>(bounds->y1),
@@ -75,23 +143,20 @@ RecordListBox::RecordListBox(const TRect &bounds, TScrollBar *vScrollBar, TScrol
 void RecordListBox::setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns,
                                 const std::map<std::string, std::string> &titles,
                                 const std::vector<FieldSchema> *schema) {
-    records_ = std::move(records);
-
-    std::vector<std::string> rows;
-    std::string header;
+    allRecords_ = std::move(records);
+    header_.clear();
+    allLines_.clear();
 
     for (std::size_t i = 0; i < columns.size(); ++i) {
         auto title = titles.find(columns[i]);
-        header += fitColumn(title != titles.end() && !title->second.empty() ? title->second : columns[i], 18);
+        header_ += fitColumn(title != titles.end() && !title->second.empty() ? title->second : columns[i], 18);
 
         if (i + 1 < columns.size()) {
-            header += " ";
+            header_ += " ";
         }
     }
 
-    rows.push_back(header);
-
-    for (const auto &rec : records_) {
+    for (const auto &rec : allRecords_) {
         std::string line;
 
         for (std::size_t i = 0; i < columns.size(); ++i) {
@@ -103,11 +168,27 @@ void RecordListBox::setRecords(std::vector<nlohmann::json> records, const std::v
             }
         }
 
-        rows.push_back(line);
+        allLines_.push_back(std::move(line));
+    }
+
+    applyFilter(filter_);
+}
+
+void RecordListBox::applyFilter(const std::string &query) {
+    filter_ = query;
+    records_.clear();
+    std::vector<std::string> rows;
+    rows.push_back(header_);
+
+    for (std::size_t i = 0; i < allLines_.size() && i < allRecords_.size(); ++i) {
+        if (foldedContains(allLines_[i], filter_)) {
+            records_.push_back(allRecords_[i]);
+            rows.push_back(allLines_[i]);
+        }
     }
 
     if (records_.empty()) {
-        rows.push_back("(no records found)");
+        rows.push_back(allRecords_.empty() ? "(no records found)" : "(no match)");
     }
 
     setRows(std::move(rows));
@@ -202,6 +283,12 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
         "F5=Refresh  Enter=Show  F4=Preview  F2=Fields  Alt+P=Print  Alt+D=Download  Esc=Close"));
     y += 1;
 
+    insert(new TStaticText(TRect(x, y, x + 6, y + 1), "Find:"));
+    findInput_ = new FindLine(TRect(x + 6, y, right, y + 1), *this);
+    growWide(findInput_);
+    insert(findInput_);
+    y += 1;
+
     insert(new TStaticText(TRect(x, y, x + 7, y + 1), "Filter:"));
     filterInput_ = new TInputLine(TRect(x + 7, y, x + 42, y + 1), 200);
     insert(filterInput_);
@@ -212,11 +299,13 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
     y += 1;
 
     insert(new TStaticText(TRect(x, y, x + 8, y + 1), "Columns:"));
-    columnsInput_ = new TInputLine(TRect(x + 8, y, x + 42, y + 1), 200);
+    columnsInput_ = new FieldLine(TRect(x + 8, y, x + 42, y + 1), *this, false, 200);
     setInputText(columnsInput_, columns);
+    static_cast<FieldLine *>(columnsInput_)->remember(columns);
     insert(columnsInput_);
     insert(new TStaticText(TRect(x + 44, y, x + 51, y + 1), "Order:"));
-    orderInput_ = new TInputLine(TRect(x + 51, y, x + 70, y + 1), 40);
+    orderInput_ = new FieldLine(TRect(x + 51, y, x + 70, y + 1), *this, true, 40);
+    static_cast<FieldLine *>(orderInput_)->remember(std::string());
     insert(orderInput_);
     y += 1;
 
@@ -259,10 +348,9 @@ RecordListView::RecordListView(CliClient &client, SessionStore &session, std::st
     detail_->showMessage("(select a record above)");
     placePanes();
     refresh();
-    // Keyboard focus starts directly on the record grid (not the Filter/
-    // Columns/Limit/Order fields above it) so Up/Down/PgUp/PgDn and Enter
-    // work immediately via TListViewer's own built-in key handling.
-    grid_->select();
+    // Find stays focused so typing narrows the loaded rows. Up/Down still move
+    // the grid (see handleEvent).
+    findInput_->select();
 }
 
 void RecordListView::changeBounds(const TRect &bounds) {
@@ -285,7 +373,7 @@ void RecordListView::placePanes() {
 
     TRect inner = getExtent();
     inner.grow(-1, -1);
-    const short y = static_cast<short>(inner.a.y + 5);
+    const short y = static_cast<short>(inner.a.y + 6);
     const short bottom = inner.b.y;
 
     if (bottom - y < 6) {
@@ -338,6 +426,78 @@ void RecordListView::placePanes() {
         detail_->vScrollBar->locate(bar);
     }
 }
+
+void RecordListView::applyFind(const std::string &query) {
+    if (query == find_ || grid_ == nullptr) {
+        return;
+    }
+
+    find_ = query;
+    grid_->applyFilter(find_);
+}
+
+void RecordListView::suggestFields(const std::string &text, bool sortableOnly) {
+    if (detail_ == nullptr) {
+        return;
+    }
+
+    const std::string token = lastFieldToken(text);
+
+    if (token.empty()) {
+        onRowFocused(grid_ != nullptr ? grid_->selectedRecord() : nullptr);
+        return;
+    }
+
+    std::string line = sortableOnly ? "Order: " : "Fields: ";
+    int shown = 0;
+
+    for (const auto &field : schema_) {
+        if (sortableOnly && !field.sortable) {
+            continue;
+        }
+
+        if (!foldedContains(field.name + " " + field.title, token)) {
+            continue;
+        }
+
+        if (shown != 0) {
+            line += ", ";
+        }
+
+        line += field.name;
+
+        if (!field.title.empty() && field.title != field.name) {
+            line += " (" + field.title + ")";
+        }
+
+        if (++shown == 8) {
+            break;
+        }
+    }
+
+    if (shown == 0) {
+        detail_->showMessage(sortableOnly ? "Order: (no matching field)" : "Fields: (no matching field)");
+        return;
+    }
+
+    detail_->showMessage(line);
+}
+
+namespace {
+
+void setFindLine(TInputLine *input, const std::string &text) {
+    std::strncpy(input->data, text.c_str(), static_cast<std::size_t>(input->maxLen));
+    input->data[input->maxLen] = '\0';
+    const int length = static_cast<int>(std::strlen(input->data));
+    input->curPos = length;
+    input->selStart = length;
+    input->selEnd = length;
+    input->firstPos = 0;
+    static_cast<FindLine *>(input)->remember(text);
+    input->drawView();
+}
+
+} // namespace
 
 std::vector<std::string> RecordListView::currentColumns() const {
     return splitColumns(columnsInput_->data);
@@ -683,6 +843,58 @@ void RecordListView::handleEvent(TEvent &event) {
 
         default:
             break;
+        }
+    } else if (event.what == evKeyDown && current == grid_ && grid_ != nullptr) {
+        if (event.keyDown.keyCode == kbBack) {
+            std::string next = find_;
+            popUtf8(next);
+            setFindLine(findInput_, next);
+            applyFind(next);
+            clearEvent(event);
+        } else {
+            const TStringView typed = event.keyDown.getText();
+
+            if (typed.size() > 0 && event.keyDown.text[0] >= 32) {
+                const std::string next = find_ + std::string(typed.data(), typed.size());
+                setFindLine(findInput_, next);
+                applyFind(next);
+                clearEvent(event);
+            }
+        }
+    } else if (event.what == evKeyDown && current == findInput_ && grid_ != nullptr) {
+        if (event.keyDown.keyCode == kbEnter) {
+            onRowActivated(grid_->selectedRecord());
+            clearEvent(event);
+        } else {
+            short target = grid_->focused;
+            bool moved = true;
+
+            switch (event.keyDown.keyCode) {
+            case kbDown:
+                target = static_cast<short>(target + 1);
+                break;
+            case kbUp:
+                target = static_cast<short>(target - 1);
+                break;
+            case kbPgDn:
+                target = static_cast<short>(target + (grid_->size.y > 0 ? grid_->size.y : 1));
+                break;
+            case kbPgUp:
+                target = static_cast<short>(target - (grid_->size.y > 0 ? grid_->size.y : 1));
+                break;
+            default:
+                moved = false;
+                break;
+            }
+
+            if (moved) {
+                if (target < 1 && grid_->rowCount() > 1) {
+                    target = 1;
+                }
+
+                grid_->focusItemNum(target);
+                clearEvent(event);
+            }
         }
     } else if (event.what == evKeyDown) {
         if (event.keyDown.keyCode == kbAltP) {
