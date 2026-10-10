@@ -6,9 +6,12 @@
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/RelationPickerDialog.h"
 #include "abraflexitui/WindowLayout.h"
+#include "abraflexitui/WindowColors.h"
 
 #include <algorithm>
 #include <cstring>
+#include <cctype>
+#include <regex>
 
 namespace abraflexitui {
 
@@ -30,14 +33,30 @@ std::string inputText(TInputLine *input) {
 }
 
 std::string fieldLabel(const FieldSchema &field) {
-    std::string label = std::string(field.mandatory ? "* " : "  ") + (field.title.empty() ? field.name : field.title);
+    std::string prefix = field.mandatory ? "*" : " ";
+    std::string name = field.title.empty() ? field.name : field.title;
+    std::string label = prefix + " " + name;
 
+    // Add type hints
     if (field.type == "relation" && !field.relationEvidence.empty()) {
         label += " (\xE2\x86\x92 " + field.relationEvidence + ")";
     } else if (field.type == "date") {
         label += " (YYYY-MM-DD)";
     } else if (field.type == "datetime") {
         label += " (YYYY-MM-DD HH:MM:SS)";
+    } else if (field.type == "number" || field.type == "int") {
+        label += " (#)";
+    } else if (field.type == "float" || field.type == "double") {
+        label += " (#.#)";
+    } else if (field.type == "logic") {
+        label += " (yes/no)";
+    } else if (field.type == "string" && field.maxLength > 0) {
+        label += " (max: " + std::to_string(field.maxLength) + ")";
+    }
+
+    // Add mandatory indicator padding for alignment
+    if (prefix == " ") {
+        label = "  " + label.substr(1); // Replace single space with double space
     }
 
     return label;
@@ -52,14 +71,87 @@ std::vector<FieldSchema> orderedWritableFields(const std::vector<FieldSchema> &s
         }
     }
 
+    // Sort: mandatory first, then alphabetically by name
     std::stable_sort(out.begin(), out.end(),
-                      [](const FieldSchema &a, const FieldSchema &b) { return a.mandatory && !b.mandatory; });
+                      [](const FieldSchema &a, const FieldSchema &b) {
+                          if (a.mandatory != b.mandatory) {
+                              return a.mandatory && !b.mandatory;
+                          }
+                          return a.name < b.name;
+                      });
 
     return out;
 }
 
 bool jsonValueIsTrue(const nlohmann::json &value) {
     return (value.is_boolean() && value.get<bool>()) || value == "true";
+}
+
+// Validation helpers
+bool isValidDate(const std::string &value) {
+    if (value.empty()) return true;
+    // YYYY-MM-DD format
+    std::regex datePattern(R"(^\d{4}-\d{2}-\d{2}$)");
+    if (!std::regex_match(value, datePattern)) {
+        return false;
+    }
+    // Basic validation of date components
+    try {
+        int year = std::stoi(value.substr(0, 4));
+        int month = std::stoi(value.substr(5, 2));
+        int day = std::stoi(value.substr(8, 2));
+        if (year < 1900 || year > 2100) return false;
+        if (month < 1 || month > 12) return false;
+        if (day < 1 || day > 31) return false;
+        // Simple day-in-month check (not perfect but catches obvious errors)
+        if ((month == 4 || month == 6 || month == 9 || month == 11) && day > 30) return false;
+        if (month == 2) {
+            bool isLeap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+            if ((isLeap && day > 29) || (!isLeap && day > 28)) return false;
+        }
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
+
+bool isValidDateTime(const std::string &value) {
+    if (value.empty()) return true;
+    // YYYY-MM-DD HH:MM:SS format
+    std::regex dtPattern(R"(^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$)");
+    if (!std::regex_match(value, dtPattern)) {
+        return false;
+    }
+    if (!isValidDate(value.substr(0, 10))) {
+        return false;
+    }
+    try {
+        int hour = std::stoi(value.substr(11, 2));
+        int minute = std::stoi(value.substr(14, 2));
+        int second = std::stoi(value.substr(17, 2));
+        if (hour < 0 || hour > 23) return false;
+        if (minute < 0 || minute > 59) return false;
+        if (second < 0 || second > 59) return false;
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
+
+bool isValidNumber(const std::string &value, const std::string &type) {
+    if (value.empty()) return true;
+    try {
+        if (type == "int" || type == "number") {
+            std::stoll(value);
+            return true;
+        } else if (type == "float" || type == "double") {
+            std::stod(value);
+            return true;
+        }
+    } catch (...) {
+        return false;
+    }
+    return true;
 }
 
 } // namespace
@@ -73,6 +165,7 @@ RecordFieldForm::RecordFieldForm(const TRect &bounds, CliClient &client, std::st
     }
 
     growMode = gfGrowHiX | gfGrowHiY;
+    fieldChangeCallback_ = nullptr;
 
     TRect inner = getExtent();
     const short x = inner.a.x;
@@ -116,6 +209,194 @@ RecordFieldForm::RecordFieldForm(const TRect &bounds, CliClient &client, std::st
     } else {
         showPage(0);
     }
+}
+
+void RecordFieldForm::setFieldChangeCallback(std::function<void(const std::string &, const std::string &)> callback) {
+    fieldChangeCallback_ = callback;
+}
+
+void RecordFieldForm::navigateFields(bool forward) {
+    if (rawMode_ || pageRows_.empty()) {
+        return;
+    }
+
+    // Find current focused field
+    int currentIndex = -1;
+    for (int i = 0; i < static_cast<int>(pageRows_.size()); ++i) {
+        TView *focusable = pageRows_[i].pickButton != nullptr ? 
+                         static_cast<TView *>(pageRows_[i].pickButton) : 
+                         pageRows_[i].widget;
+        if (focusable->state & sfFocused) {
+            currentIndex = i;
+            break;
+        }
+    }
+
+    // Find next focusable field
+    int nextIndex = -1;
+    if (forward) {
+        // Search forward from current position
+        for (int i = currentIndex + 1; i < static_cast<int>(pageRows_.size()); ++i) {
+            TView *v = pageRows_[i].pickButton != nullptr ? 
+                       static_cast<TView *>(pageRows_[i].pickButton) : 
+                       pageRows_[i].widget;
+            if ((v->options & ofSelectable) != 0) {
+                nextIndex = i;
+                break;
+            }
+        }
+        // Wrap around to beginning
+        if (nextIndex == -1 && currentIndex != -1) {
+            for (int i = 0; i <= currentIndex; ++i) {
+                TView *v = pageRows_[i].pickButton != nullptr ? 
+                           static_cast<TView *>(pageRows_[i].pickButton) : 
+                           pageRows_[i].widget;
+                if ((v->options & ofSelectable) != 0) {
+                    nextIndex = i;
+                    break;
+                }
+            }
+        }
+    } else {
+        // Search backward
+        for (int i = currentIndex - 1; i >= 0; --i) {
+            TView *v = pageRows_[i].pickButton != nullptr ? 
+                       static_cast<TView *>(pageRows_[i].pickButton) : 
+                       pageRows_[i].widget;
+            if ((v->options & ofSelectable) != 0) {
+                nextIndex = i;
+                break;
+            }
+        }
+        // Wrap around to end
+        if (nextIndex == -1) {
+            for (int i = static_cast<int>(pageRows_.size()) - 1; i >= (currentIndex == -1 ? 0 : currentIndex + 1); --i) {
+                TView *v = pageRows_[i].pickButton != nullptr ? 
+                           static_cast<TView *>(pageRows_[i].pickButton) : 
+                           pageRows_[i].widget;
+                if ((v->options & ofSelectable) != 0) {
+                    nextIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (nextIndex != -1) {
+        TView *target = pageRows_[nextIndex].pickButton != nullptr ? 
+                       static_cast<TView *>(pageRows_[nextIndex].pickButton) : 
+                       pageRows_[nextIndex].widget;
+        target->focus();
+        target->drawView();
+    }
+}
+
+std::string RecordFieldForm::validateFieldValue(const FieldSchema &field, const std::string &value) {
+    if (!field.writable) {
+        return std::string();
+    }
+
+    if (field.mandatory && value.empty()) {
+        return "Required field";
+    }
+
+    if (field.type == "date" && !isValidDate(value)) {
+        return "Invalid date format (expected YYYY-MM-DD)";
+    }
+
+    if (field.type == "datetime" && !isValidDateTime(value)) {
+        return "Invalid datetime format (expected YYYY-MM-DD HH:MM:SS)";
+    }
+
+    if ((field.type == "number" || field.type == "int" || field.type == "float") && !isValidNumber(value, field.type)) {
+        return "Invalid number format";
+    }
+
+    if (field.maxLength > 0 && value.length() > static_cast<std::size_t>(field.maxLength)) {
+        return "Field exceeds maximum length of " + std::to_string(field.maxLength);
+    }
+
+    return std::string();
+}
+
+void RecordFieldForm::validateCurrentField() {
+    if (rawMode_ || pageRows_.empty()) {
+        return;
+    }
+
+    for (auto &row : pageRows_) {
+        row.validationError.clear();
+    }
+
+    // Find which field has focus
+    for (auto &row : pageRows_) {
+        TView *focusable = row.pickButton != nullptr ? 
+                         static_cast<TView *>(row.pickButton) : 
+                         row.widget;
+        if ((focusable->state & sfFocused) != 0) {
+            if (row.field->type == "logic") {
+                // Checkbox - validate based on checked state
+                bool checked = static_cast<TCheckBoxes *>(row.widget)->mark(0) == True;
+                if (row.field->mandatory && !checked) {
+                    row.validationError = "Required field";
+                } else {
+                    row.validationError.clear();
+                }
+            } else if (row.pickButton == nullptr) {
+                // Regular input field
+                std::string value = inputText(static_cast<TInputLine *>(row.widget));
+                row.validationError = validateFieldValue(*row.field, value);
+            }
+            // For relation fields, validation is handled by the picker
+            break;
+        }
+    }
+}
+
+std::string RecordFieldForm::getFieldTitle(const std::string &fieldName) const {
+    for (const auto &field : fields_) {
+        if (field.name == fieldName) {
+            return field.title.empty() ? field.name : field.title;
+        }
+    }
+    return fieldName;
+}
+
+std::map<std::string, std::string> RecordFieldForm::validateAllFields() {
+    std::map<std::string, std::string> errors;
+
+    if (rawMode_) {
+        // Validate raw JSON mode
+        try {
+            nlohmann::json parsed = nlohmann::json::parse(readRawText());
+            if (!parsed.is_object()) {
+                errors["__raw__"] = "JSON must be an object";
+            }
+        } catch (const nlohmann::json::parse_error &e) {
+            errors["__raw__"] = "Invalid JSON: " + std::string(e.what());
+        }
+        return errors;
+    }
+
+    // Flush current page into model
+    flushPageIntoModel();
+
+    // Validate all fields in model
+    for (const auto &field : fields_) {
+        if (model_.contains(field.name)) {
+            if (model_.at(field.name).is_string()) {
+                std::string error = validateFieldValue(field, model_.at(field.name).get<std::string>());
+                if (!error.empty()) {
+                    errors[field.name] = error;
+                }
+            }
+            // For non-string fields, we accept whatever JSON parsing gives us
+        } else if (field.mandatory) {
+            errors[field.name] = "Required field";
+        }
+    }
+
+    return errors;
 }
 
 void RecordFieldForm::recomputeGeometry() {
@@ -190,6 +471,15 @@ void RecordFieldForm::reflowCurrentPage() {
             row.widget->locate(widgetRect);
         }
     }
+}
+
+Boolean RecordFieldForm::focusNext(Boolean forward) {
+    // Custom focus navigation for Tab key
+    if (!rawMode_ && !pageRows_.empty()) {
+        navigateFields(forward);
+        return True; // We handled focus navigation
+    }
+    return TGroup::focusNext(forward);
 }
 
 void RecordFieldForm::showPage(int page) {
@@ -509,10 +799,44 @@ void RecordFieldForm::draw() {
     }
 
     TGroup::draw();
+
+    // Draw validation error indicators for fields with errors
+    if (!rawMode_) {
+        const TColorAttr errorColor = getColor(0x0C); // Red on default background
+        for (const auto &row : pageRows_) {
+            if (!row.validationError.empty()) {
+                // Draw error indicator after the field
+                TRect widgetBounds = row.widget->getBounds();
+                short x = widgetBounds.b.x + 1;
+                short y = widgetBounds.a.y;
+                if (x < size.x) {
+                    buffer.moveChar(0, '!', errorColor, 1);
+                    writeLine(x, y, 1, 1, buffer);
+                }
+            }
+        }
+    }
 }
 
 void RecordFieldForm::handleEvent(TEvent &event) {
     TGroup::handleEvent(event);
+
+    // Handle keyboard events for Tab navigation
+    if (event.what == evKeyDown) {
+        if (event.keyDown.keyCode == kbTab) {
+            // Check if Shift is pressed for backward navigation
+            Boolean shiftPressed = (event.keyDown.controlKeyState & (kbShift | kbLeftShift | kbRightShift)) != 0;
+            navigateFields(!shiftPressed);
+            clearEvent(event);
+            return;
+        }
+
+        // Real-time validation on field exit (Enter key)
+        if (event.keyDown.keyCode == kbEnter) {
+            validateCurrentField();
+            // Don't clear event - let it propagate to the focused control
+        }
+    }
 
     if (event.what != evCommand) {
         return;
@@ -542,6 +866,21 @@ void RecordFieldForm::handleEvent(TEvent &event) {
             }
         }
 
+        clearEvent(event);
+        break;
+
+    case cmFieldFormTabForward:
+        navigateFields(true);
+        clearEvent(event);
+        break;
+
+    case cmFieldFormTabBackward:
+        navigateFields(false);
+        clearEvent(event);
+        break;
+
+    case cmFieldFormValidate:
+        validateCurrentField();
         clearEvent(event);
         break;
 

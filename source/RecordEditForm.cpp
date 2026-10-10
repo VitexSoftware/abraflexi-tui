@@ -71,6 +71,17 @@ void RecordEditForm::submit(bool dryRun) {
         return;
     }
 
+    // First check for validation errors
+    auto validationErrors = form_->validateAllFields();
+    if (!validationErrors.empty()) {
+        std::string msg = "Validation errors:\n";
+        for (const auto &[fieldName, error] : validationErrors) {
+            msg += "  - " + form_->getFieldTitle(fieldName) + ": " + error + "\n";
+        }
+        messageBox(msg, mfError | mfOKButton);
+        return;
+    }
+
     std::vector<std::string> missing = form_->missingMandatory();
 
     if (!missing.empty()) {

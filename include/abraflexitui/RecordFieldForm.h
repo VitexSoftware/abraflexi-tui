@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace abraflexitui {
 
@@ -37,9 +38,19 @@ public:
     // meaningful when a schema was supplied (always empty otherwise).
     std::vector<std::string> missingMandatory();
 
+    // Validate all fields and return error messages per field
+    std::map<std::string, std::string> validateAllFields();
+
+    // Get the display title for a field name (from schema if available)
+    std::string getFieldTitle(const std::string &fieldName) const;
+
+    // Set a callback for field value changes (for validation, auto-save, etc.)
+    void setFieldChangeCallback(std::function<void(const std::string &, const std::string &)> callback);
+
     void handleEvent(TEvent &event) override;
     void draw() override;
     void changeBounds(const TRect &bounds) override;
+    Boolean focusNext(Boolean forward);
 
 private:
     void showPage(int page);
@@ -52,6 +63,9 @@ private:
     std::string readRawText() const;
     void recomputeGeometry();
     void reflowCurrentPage();
+    void navigateFields(bool forward);
+    void validateCurrentField();
+    std::string validateFieldValue(const FieldSchema &field, const std::string &value);
 
     struct FieldRow;
     void openRelationPicker(FieldRow &row);
@@ -65,6 +79,7 @@ private:
     int rowsPerPage_ = 1;
     int pageCount_ = 1;
     bool rawMode_ = false;
+    std::function<void(const std::string &, const std::string &)> fieldChangeCallback_;
 
     struct FieldRow {
         const FieldSchema *field;
@@ -87,6 +102,8 @@ private:
         // it into the model instead of the (read-only) display text.
         nlohmann::json pickedValue;
         bool hasPickedValue = false;
+        // Validation error message for this field (empty if valid)
+        std::string validationError;
     };
     std::vector<FieldRow> pageRows_;
 
