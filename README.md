@@ -1,8 +1,10 @@
-# AbraFlexi TUI
+# AbraFlexi TUI v1.2.0
 
 A terminal user interface for [abraflexi-cli](https://github.com/VitexSoftware/abraflexi-cli), built with the [Turbo Vision](https://github.com/magiblot/tvision) (tvision) library.
 
 ![Logo](abraflexi-tui.svg?raw=true)
+
+> **Latest Release**: [v1.2.0](https://github.com/VitexSoftware/abraflexi-tui/releases/tag/v1.2.0) - Enhanced UX, Makefile, and Documentation
 
 ## Features
 

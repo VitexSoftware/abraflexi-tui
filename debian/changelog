@@ -1,3 +1,21 @@
+abraflexi-tui (1.2.0) unstable; urgency=medium
+
+  * UX Improvements for edit dialogs:
+    - Add Tab/Shift+Tab navigation between fields
+    - Implement real-time field validation with visual error indicators
+    - Add field type-specific validation (date, datetime, number, maxLength)
+    - Improve field labels with type hints and better mandatory indicators
+    - Show validation error summary before form submission
+    - Refactor field ordering (mandatory first, then alphabetical)
+  * Add comprehensive Makefile for building, testing, and running the project
+    - 35+ convenient targets (build, test, run, install, package, etc.)
+    - Configuration options (BUILD_TYPE, INSTALL_PREFIX, NPROC)
+    - Dependency checking and version information
+  * Update documentation with UX improvements, Makefile reference, and
+    future enhancements roadmap
+
+ -- Vitex Software <info@vitexsoftware.cz>  Sat, 10 Oct 2026 15:45:00 +0200
+
 abraflexi-tui (1.1.0) unstable; urgency=medium
 
   * Add Czech and German UI translations with an in-app Language menu
