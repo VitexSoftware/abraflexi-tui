@@ -261,6 +261,53 @@ verification is manual (see the man page's EXAMPLES section). The
 `abraflexi-tui-cliclient-check` binary exercises the process-spawning and
 JSON-parsing logic in isolation, without starting the terminal event loop.
 
+### Using Makefile (Recommended)
+
+The project includes a comprehensive Makefile that simplifies common tasks:
+
+```bash
+make              # Build the project
+make run          # Build and run
+make test         # Run tests
+make install      # Install system-wide
+make clean        # Clean build artifacts
+make help         # Show all available targets
+```
+
+See the [Makefile](#makefile) section below for complete documentation.
+
+## Recent UX Improvements
+
+The latest version includes significant ergonomy and user experience enhancements:
+
+### Edit Dialog Improvements
+
+| Feature | Description |
+|---------|-------------|
+| **Tab Navigation** | Use `Tab` and `Shift+Tab` to navigate between fields |
+| **Real-time Validation** | Fields are validated as you type with visual error indicators |
+| **Field Type Hints** | Labels now show type information (dates, numbers, relations, etc.) |
+| **Validation Summary** | Clear error messages shown before form submission |
+| **Improved Field Ordering** | Mandatory fields appear first, then alphabetically sorted |
+
+### Supported Field Types with Validation
+
+| Type | Format | Validation |
+|------|--------|------------|
+| Date | `YYYY-MM-DD` | Validates format and logical dates (including leap years) |
+| Datetime | `YYYY-MM-DD HH:MM:SS` | Validates format and time ranges |
+| Integer | Numeric | Validates integer format |
+| Float | Decimal | Validates floating-point format |
+| String | Text | Validates maximum length constraints |
+| Relation | Reference | Pick from related records with dialog |
+| Logic | Boolean | Checkbox for yes/no values |
+
+### Validation Error Indicators
+
+- **Visual Feedback**: Red exclamation mark (`!`) appears next to fields with errors
+- **Error Messages**: Clear, user-friendly messages referencing field titles (not just technical names)
+- **Pre-submission Check**: All validation errors are summarized before form submission
+
 ## Package Information
 
 - **Section**: utils
@@ -279,6 +326,130 @@ MIT License — see [LICENSE](LICENSE).
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+## Makefile Reference
+
+The project includes a comprehensive Makefile that provides convenient targets for building, testing, and running:
+
+### Common Targets
+
+| Target | Description |
+|--------|-------------|
+| `make` | Build all targets (default) |
+| `make build` | Build the project |
+| `make clean` | Remove build directory |
+| `make install` | Install system-wide |
+| `make uninstall` | Remove installed files |
+| `make run` | Build and run the application |
+| `make test` | Run all tests |
+| `make help` | Show all available targets |
+
+### Configuration Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BUILD_DIR` | `build` | Build directory |
+| `BUILD_TYPE` | `Release` | Build type (`Release` or `Debug`) |
+| `INSTALL_PREFIX` | `/usr/local` | Installation prefix |
+| `NPROC` | auto-detect | Number of parallel build jobs |
+
+### Examples
+
+```bash
+# Debug build
+make BUILD_TYPE=Debug
+
+# Install to home directory
+make install INSTALL_PREFIX=$HOME/.local
+
+# Run with 4 parallel jobs
+make NPROC=4
+```
+
+### Complete Target List
+
+Run `make help` to see the complete list of available targets, including:
+- Test targets: `test`, `test-cliclient`, `test-profile`, `test-integration`
+- Development targets: `pot-update`, `update-po`, `clean-translations`
+- Package targets: `package`, `package-source`
+- Information targets: `version`, `check-deps`
+- Git helpers: `git-pull`, `git-status`
+
+## Next Steps and Future Enhancements
+
+### Short-term Roadmap (Priority: High)
+
+| Enhancement | Description | Status |
+|-------------|-------------|--------|
+| **Auto-save Drafts** | Automatically save form state to prevent data loss | Planned |
+| **Field Auto-complete** | Suggest values for relation fields and known enumerations | Planned |
+| **Field Descriptions** | Add tooltips/help text for schema fields | Planned |
+| **Bulk Edit** | Edit multiple records simultaneously | Planned |
+
+### Medium-term Roadmap (Priority: Medium)
+
+| Enhancement | Description | Status |
+|-------------|-------------|--------|
+| **Date Picker** | Calendar-based date selection dialog | Planned |
+| **Input Masks** | Pattern-based input for structured data (phone, email, etc.) | Planned |
+| **Undo/Redo** | Field-level change history with Ctrl+Z/Ctrl+Y | Planned |
+| **Field Grouping** | Logical grouping of related fields with visual separators | Planned |
+| **Bulk Import** | Import records from CSV/JSON files | Planned |
+| **Export Templates** | Save and reuse export configurations | Planned |
+
+### Long-term Roadmap (Priority: Low)
+
+| Enhancement | Description | Status |
+|-------------|-------------|--------|
+| **Custom Themes** | User-configurable color schemes | Idea |
+| **Keyboard Macros** | Record and replay keyboard sequences | Idea |
+| **Multi-language Spell Check** | Spell checking for text fields | Idea |
+| **Offline Mode** | Cache data for offline browsing | Idea |
+| **Plugin System** | Extensible architecture for custom evidence types | Idea |
+
+### Technical Improvements
+
+| Area | Description | Status |
+|------|-------------|--------|
+| **Test Automation** | Automated UI test suite using terminal emulation | Research |
+| **Performance Profiling** | Identify and optimize slow operations | Research |
+| **Memory Optimization** | Reduce memory usage for large datasets | Research |
+| **CI/CD Pipeline** | GitHub Actions for automated builds and releases | Planned |
+
+### Contributing Guidelines
+
+We welcome contributions! Please focus on:
+
+1. **User Experience**: Improve keyboard navigation, field editing, and validation
+2. **Performance**: Optimize data loading and rendering
+3. **Accessibility**: Ensure the TUI works well with screen readers
+4. **Internationalization**: Add translations for new languages
+5. **Documentation**: Improve user and developer documentation
+
+#### Getting Started
+
+```bash
+# Fork the repository
+git clone https://github.com/VitexSoftware/abraflexi-tui.git
+cd abraflexi-tui
+
+# Build the project
+make
+
+# Run tests
+make test
+
+# Make your changes and submit a PR
+```
+
+#### Code Review Checklist
+
+- [ ] Code follows existing style and conventions
+- [ ] All new features have keyboard navigation
+- [ ] Error messages are user-friendly
+- [ ] Changes are backward compatible
+- [ ] Documentation is updated
+- [ ] Tests pass (if applicable)
 
 ## Support
 
