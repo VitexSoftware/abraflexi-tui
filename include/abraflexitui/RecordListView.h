@@ -35,6 +35,7 @@ public:
     void setRecords(std::vector<nlohmann::json> records, const std::vector<std::string> &columns,
                      const std::map<std::string, std::string> &titles = {},
                      const std::vector<FieldSchema> *schema = nullptr);
+    void applyFilter(const std::string &query);
     const nlohmann::json *selectedRecord() const;
     // Row index (matching focusItemNum()'s convention, i.e. 1-based since
     // row 0 is the header) of the record whose "id" field equals `id`, or
@@ -47,6 +48,10 @@ public:
 private:
     RecordListView &ownerView_;
     std::vector<nlohmann::json> records_;
+    std::vector<nlohmann::json> allRecords_;
+    std::vector<std::string> allLines_;
+    std::string header_;
+    std::string filter_;
 };
 
 // Generic, evidence-name-parameterized record browser: one window handles
@@ -65,6 +70,8 @@ public:
     ~RecordListView() override;
 
     void refresh();
+    void applyFind(const std::string &query);
+    void suggestFields(const std::string &text, bool sortableOnly);
     void onRowFocused(const nlohmann::json *record);
     void onRowActivated(const nlohmann::json *record);
     void changeBounds(const TRect &bounds) override;
@@ -101,10 +108,12 @@ private:
     int sessionHandle_ = 0;
     std::string pendingFocusId_;
 
+    TInputLine *findInput_ = nullptr;
     TInputLine *filterInput_;
     TInputLine *columnsInput_;
     TInputLine *limitInput_;
     TInputLine *orderInput_;
+    std::string find_;
 
     RecordListBox *grid_ = nullptr;
     TScrollBar *gridHScroll_ = nullptr;

@@ -17,6 +17,7 @@ class RelationPickerDialog : public TDialog {
 public:
     RelationPickerDialog(CliClient &client, std::string relationEvidence, std::string company);
 
+    void applyQuery(const std::string &query);
     void handleEvent(TEvent &event) override;
     TColorAttr mapColor(uchar index) override;
 
@@ -25,15 +26,20 @@ public:
 
 private:
     void loadItems();
+    void setQueryText(const std::string &query);
 
     CliClient &client_;
     std::string relationEvidence_;
     std::string company_;
 
+    std::vector<nlohmann::json> allRecords_;
+    std::vector<std::string> allTexts_;
     std::vector<nlohmann::json> records_;
     std::vector<std::string> rowTexts_;
+    std::string query_;
 
     TListViewer *list_ = nullptr;
+    TInputLine *queryInput_ = nullptr;
     TScrollBar *bar_ = nullptr;
 };
 

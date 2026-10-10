@@ -4,6 +4,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/JsonFormat.h"
 #include "abraflexitui/RecordListView.h"
+#include "abraflexitui/TextFold.h"
 #include "abraflexitui/WindowColors.h"
 #include "abraflexitui/WindowLayout.h"
 
@@ -23,6 +24,29 @@ void setLine(TInputLine *input, const char *text) {
     input->data[input->maxLen] = '\0';
 }
 
+class EvidenceLine : public TInputLine {
+public:
+    EvidenceLine(const TRect &bounds, SearchView &owner) noexcept : TInputLine(bounds, 64), owner_(owner) {
+    }
+
+    void handleEvent(TEvent &event) override {
+        TInputLine::handleEvent(event);
+
+        if (data != nullptr && std::string(data) != seen_) {
+            seen_ = data;
+            owner_.suggestEvidences();
+        }
+    }
+
+    void remember(const std::string &text) {
+        seen_ = text;
+    }
+
+private:
+    SearchView &owner_;
+    std::string seen_;
+};
+
 } // namespace
 
 SearchView::SearchView(CliClient &client, SessionStore &session)
@@ -32,14 +56,15 @@ SearchView::SearchView(CliClient &client, SessionStore &session)
     options |= ofCentered;
     makeMaximizable(*this);
 
-    evidence_ = new TInputLine(TRect(14, 2, 40, 3), 64);
+    evidence_ = new EvidenceLine(TRect(14, 2, 40, 3), *this);
     insert(evidence_);
     insert(new TLabel(TRect(2, 2, 14, 3), "~E~vidence:", evidence_));
     query_ = new TInputLine(TRect(50, 2, 72, 3), 80);
     growWide(query_);
     insert(query_);
     insert(new TLabel(TRect(42, 2, 50, 3), "~T~ext:", query_));
-    TView *hint = new TStaticText(TRect(2, 3, 72, 4), "Empty evidence searches catalogue names. Enter opens the hit.");
+    TView *hint = new TStaticText(TRect(2, 3, 72, 4),
+                                  "Evidence narrows the catalogue. Tab fills it, Enter opens. Search looks up text.");
     growWide(hint);
     insert(hint);
     TView *search = new AppButton(TRect(2, 4, 14, 6), "~S~earch", cmSearchRun, bfDefault);
@@ -55,12 +80,81 @@ SearchView::SearchView(CliClient &client, SessionStore &session)
     growFill(results_);
     results_->setRows({"(no results)"});
     insert(results_);
+    suggestEvidences();
     selectNext(False);
+}
+
+void SearchView::loadCatalogue() {
+    if (catalogueLoaded_) {
+        return;
+    }
+
+    catalogueLoaded_ = true;
+    CliClient::Result listed = client_.runJson({"list-evidences"});
+
+    if (listed.ok && listed.data.is_array()) {
+        for (const auto &item : listed.data) {
+            catalogue_.push_back(item);
+        }
+    }
+}
+
+void SearchView::suggestEvidences() {
+    if (query_ != nullptr && query_->data[0] != '\0') {
+        return;
+    }
+
+    loadCatalogue();
+    suggesting_ = true;
+    hitEvidence_.clear();
+    hitId_.clear();
+    std::vector<std::string> rows;
+    const std::string typed = evidence_ != nullptr ? evidence_->data : "";
+
+    for (const auto &item : catalogue_) {
+        const std::string path = jsonField(item, "path");
+        const std::string name = jsonField(item, "name");
+        const std::string description = jsonField(item, "description");
+
+        if (!foldedContains(path + " " + name + " " + description, typed)) {
+            continue;
+        }
+
+        rows.push_back(fitColumn(path, 28) + " " + name);
+        hitEvidence_.push_back(path);
+        hitId_.push_back(std::string());
+    }
+
+    if (rows.empty()) {
+        rows.push_back(catalogue_.empty() ? "(no evidences)" : "(no match)");
+    }
+
+    results_->setRows(std::move(rows));
+}
+
+void SearchView::acceptSuggestion() {
+    const short index = results_->focused;
+
+    if (index < 0 || static_cast<std::size_t>(index) >= hitEvidence_.size()) {
+        return;
+    }
+
+    const std::string &path = hitEvidence_[static_cast<std::size_t>(index)];
+
+    if (path.empty()) {
+        return;
+    }
+
+    setLine(evidence_, path.c_str());
+    static_cast<EvidenceLine *>(evidence_)->remember(path);
+    evidence_->drawView();
+    suggesting_ = false;
 }
 
 void SearchView::runSearch() {
     const std::string evidence = evidence_->data;
     const std::string query = query_->data;
+    suggesting_ = false;
     hitEvidence_.clear();
     hitId_.clear();
     std::vector<std::string> rows;
@@ -84,7 +178,7 @@ void SearchView::runSearch() {
             const std::string description = jsonField(item, "description");
             const std::string hay = path + " " + name + " " + description;
 
-            if (hay.find(query) == std::string::npos) {
+            if (!foldedContains(hay, query)) {
                 continue;
             }
 
@@ -166,6 +260,16 @@ void SearchView::openCurrent() {
 }
 
 void SearchView::handleEvent(TEvent &event) {
+    if (event.what == evKeyDown && suggesting_ && current == evidence_) {
+        if (event.keyDown.keyCode == kbTab) {
+            acceptSuggestion();
+        } else if (event.keyDown.keyCode == kbEnter) {
+            openCurrent();
+            clearEvent(event);
+            return;
+        }
+    }
+
     TDialog::handleEvent(event);
 
     if (event.what == evCommand && event.message.command == cmSearchRun) {
@@ -178,6 +282,35 @@ void SearchView::handleEvent(TEvent &event) {
         openCurrent();
         clearEvent(event);
         return;
+    }
+
+    if (event.what == evKeyDown && current == evidence_ && results_ != nullptr) {
+        short target = results_->focused;
+        bool moved = true;
+
+        switch (event.keyDown.keyCode) {
+        case kbDown:
+            target = static_cast<short>(target + 1);
+            break;
+        case kbUp:
+            target = static_cast<short>(target - 1);
+            break;
+        case kbPgDn:
+            target = static_cast<short>(target + (results_->size.y > 0 ? results_->size.y : 1));
+            break;
+        case kbPgUp:
+            target = static_cast<short>(target - (results_->size.y > 0 ? results_->size.y : 1));
+            break;
+        default:
+            moved = false;
+            break;
+        }
+
+        if (moved) {
+            results_->focusItemNum(target);
+            clearEvent(event);
+            return;
+        }
     }
 
     if (event.what == evKeyDown && event.keyDown.keyCode == kbEnter && results_ != nullptr &&

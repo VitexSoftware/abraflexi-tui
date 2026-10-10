@@ -4,6 +4,7 @@
 #include "abraflexitui/Commands.h"
 #include "abraflexitui/EvidenceSchema.h"
 #include "abraflexitui/JsonFormat.h"
+#include "abraflexitui/TextFold.h"
 #include "abraflexitui/WindowColors.h"
 
 #include <algorithm>
@@ -37,6 +38,30 @@ private:
     const std::vector<std::string> *items_ = nullptr;
 };
 
+class QueryLine : public TInputLine {
+public:
+    QueryLine(const TRect &bounds, RelationPickerDialog &owner) noexcept
+        : TInputLine(bounds, 80), owner_(owner) {
+    }
+
+    void handleEvent(TEvent &event) override {
+        TInputLine::handleEvent(event);
+
+        if (data != nullptr && std::string(data) != seen_) {
+            seen_ = data;
+            owner_.applyQuery(seen_);
+        }
+    }
+
+    void remember(const std::string &text) {
+        seen_ = text;
+    }
+
+private:
+    RelationPickerDialog &owner_;
+    std::string seen_;
+};
+
 } // namespace
 
 RelationPickerDialog::RelationPickerDialog(CliClient &client, std::string relationEvidence, std::string company)
@@ -50,16 +75,21 @@ RelationPickerDialog::RelationPickerDialog(CliClient &client, std::string relati
     short y = 2;
     short right = 70;
 
-    insert(new TStaticText(TRect(x, y, right, y + 1), "Pick a value, then Select."));
+    insert(new TStaticText(TRect(x, y, right, y + 1), "Type to narrow, then Select."));
+    y += 1;
+
+    insert(new TStaticText(TRect(x, y, x + 6, y + 1), "Find:"));
+    queryInput_ = new QueryLine(TRect(x + 6, y, right, y + 1), *this);
+    insert(queryInput_);
     y += 1;
 
     bar_ = standardScrollBar(sbVertical | sbHandleKeyboard);
-    auto *box = new SimpleStringListBox(TRect(x, y, right, static_cast<short>(y + 13)), bar_);
+    auto *box = new SimpleStringListBox(TRect(x, y, right, static_cast<short>(y + 12)), bar_);
     insert(bar_);
     insert(box);
     list_ = box;
 
-    y += 14;
+    y += 13;
 
     insert(new AppButton(TRect(x, y, static_cast<short>(x + 16), static_cast<short>(y + 2)), "~S~elect",
                           cmRelationPickerSelect, bfDefault));
@@ -67,7 +97,7 @@ RelationPickerDialog::RelationPickerDialog(CliClient &client, std::string relati
                           "Cancel", cmCancel, bfNormal));
 
     loadItems();
-    selectNext(False);
+    queryInput_->select();
 }
 
 void RelationPickerDialog::loadItems() {
@@ -97,8 +127,8 @@ void RelationPickerDialog::loadItems() {
     CliClient::Result result = client_.runJsonForCompany(
         {"record", relationEvidence_, "list", "--columns=" + columnsJoined, "--limit=200"}, company_);
 
-    records_.clear();
-    rowTexts_.clear();
+    allRecords_.clear();
+    allTexts_.clear();
 
     if (result.ok && result.data.is_array()) {
         for (const auto &rec : result.data) {
@@ -120,12 +150,49 @@ void RelationPickerDialog::loadItems() {
                 text = recordIdentifier(rec);
             }
 
-            records_.push_back(rec);
-            rowTexts_.push_back(text);
+            allRecords_.push_back(rec);
+            allTexts_.push_back(text);
         }
     }
 
+    query_.clear();
+    applyQuery(std::string());
+}
+
+void RelationPickerDialog::applyQuery(const std::string &query) {
+    query_ = query;
+    records_.clear();
+    rowTexts_.clear();
+
+    for (std::size_t i = 0; i < allTexts_.size() && i < allRecords_.size(); ++i) {
+        if (foldedContains(allTexts_[i], query_)) {
+            records_.push_back(allRecords_[i]);
+            rowTexts_.push_back(allTexts_[i]);
+        }
+    }
+
+    if (rowTexts_.empty()) {
+        rowTexts_.push_back(allTexts_.empty() ? "(no records)" : "(no match)");
+    }
+
     static_cast<SimpleStringListBox *>(list_)->setItems(rowTexts_);
+}
+
+void RelationPickerDialog::setQueryText(const std::string &query) {
+    if (queryInput_ == nullptr) {
+        return;
+    }
+
+    std::strncpy(queryInput_->data, query.c_str(), static_cast<std::size_t>(queryInput_->maxLen));
+    queryInput_->data[queryInput_->maxLen] = '\0';
+    const int length = static_cast<int>(std::strlen(queryInput_->data));
+    queryInput_->curPos = length;
+    queryInput_->selStart = length;
+    queryInput_->selEnd = length;
+    queryInput_->firstPos = 0;
+    static_cast<QueryLine *>(queryInput_)->remember(query);
+    queryInput_->drawView();
+    applyQuery(query);
 }
 
 nlohmann::json RelationPickerDialog::selectedValue() const {
@@ -150,8 +217,58 @@ nlohmann::json RelationPickerDialog::selectedValue() const {
 void RelationPickerDialog::handleEvent(TEvent &event) {
     TDialog::handleEvent(event);
 
+    if (event.what == evKeyDown && current == list_ && list_ != nullptr) {
+        if (event.keyDown.keyCode == kbBack) {
+            std::string next = query_;
+            popUtf8(next);
+            setQueryText(next);
+            clearEvent(event);
+            return;
+        }
+
+        const TStringView typed = event.keyDown.getText();
+
+        if (typed.size() > 0 && event.keyDown.text[0] >= 32) {
+            setQueryText(query_ + std::string(typed.data(), typed.size()));
+            clearEvent(event);
+            return;
+        }
+    }
+
+    if (event.what == evKeyDown && current == queryInput_ && list_ != nullptr) {
+        short target = list_->focused;
+        bool moved = true;
+
+        switch (event.keyDown.keyCode) {
+        case kbDown:
+            target = static_cast<short>(target + 1);
+            break;
+        case kbUp:
+            target = static_cast<short>(target - 1);
+            break;
+        case kbPgDn:
+            target = static_cast<short>(target + (list_->size.y > 0 ? list_->size.y : 1));
+            break;
+        case kbPgUp:
+            target = static_cast<short>(target - (list_->size.y > 0 ? list_->size.y : 1));
+            break;
+        default:
+            moved = false;
+            break;
+        }
+
+        if (moved) {
+            list_->focusItemNum(target);
+            clearEvent(event);
+            return;
+        }
+    }
+
     if (event.what == evBroadcast && event.message.command == cmListItemSelected && event.message.infoPtr == list_) {
-        endModal(cmOK);
+        if (selectedValue().is_object()) {
+            endModal(cmOK);
+        }
+
         clearEvent(event);
         return;
     }
@@ -161,7 +278,10 @@ void RelationPickerDialog::handleEvent(TEvent &event) {
     }
 
     if (event.message.command == cmRelationPickerSelect) {
-        endModal(cmOK);
+        if (selectedValue().is_object()) {
+            endModal(cmOK);
+        }
+
         clearEvent(event);
     }
 }

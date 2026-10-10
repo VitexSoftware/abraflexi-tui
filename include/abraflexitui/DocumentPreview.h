@@ -31,6 +31,7 @@ public:
 private:
     void placeItems();
     void reloadItems();
+    void applyFind();
     void askFilter();
     void askSort();
     void showStatus();
@@ -43,6 +44,9 @@ private:
     std::string order_;
     std::string relation_;
     std::string itemsLabel_;
+    std::string find_;
+    std::string itemHeader_;
+    std::vector<std::string> itemLines_;
     std::vector<std::string> columns_;
 
     class ItemList;
